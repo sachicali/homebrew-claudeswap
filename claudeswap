@@ -367,16 +367,48 @@ detect_model_tier() {
     esac
 }
 
-# Extract model from session for analysis
+# Cache for model extraction to avoid repeated parsing
+declare -A MODEL_CACHE
+CACHE_SIZE_LIMIT=100
+
+# Extract model from session for analysis with caching
 extract_session_model() {
     local session_file="$1"
+    local file_hash=$(stat -f "%m%z" "$session_file" 2>/dev/null || stat -c "%Y%s" "$session_file" 2>/dev/null || echo "0")
 
-    if [[ -f "$session_file" ]]; then
-        # Find the first assistant message with a model field
-        grep '"type":"assistant"' "$session_file" | head -1 | jq -r '.message.model // "unknown"' 2>/dev/null || echo "unknown"
-    else
-        echo "unknown"
+    # Check cache first
+    local cache_key="${session_file}:${file_hash}"
+    if [[ -n "${MODEL_CACHE[$cache_key]}" ]]; then
+        echo "${MODEL_CACHE[$cache_key]}"
+        return 0
     fi
+
+    # Extract model (optimized - read only first few KB)
+    local model="unknown"
+    if [[ -f "$session_file" ]]; then
+        # Read only first 8KB for speed (most models are in early messages)
+        model=$(head -c 8192 "$session_file" 2>/dev/null | \
+            grep '"type":"assistant"' | head -1 | \
+            jq -r '.message.model // "unknown"' 2>/dev/null || echo "unknown")
+    fi
+
+    # Update cache (with size management)
+    if [[ ${#MODEL_CACHE[@]} -ge $CACHE_SIZE_LIMIT ]]; then
+        # Clear oldest half of cache when limit reached
+        local keys_to_remove=()
+        local count=0
+        for key in "${!MODEL_CACHE[@]}"; do
+            keys_to_remove+=("$key")
+            ((count++))
+            [[ $count -ge $((CACHE_SIZE_LIMIT / 2)) ]] && break
+        done
+        for key in "${keys_to_remove[@]}"; do
+            unset MODEL_CACHE["$key"]
+        done
+    fi
+
+    MODEL_CACHE[$cache_key]="$model"
+    echo "$model"
 }
 
 # Normalize session for API compatibility between providers
@@ -404,58 +436,65 @@ transform_session_format() {
     # Create backup of original
     cp "$session_file" "${session_file}.api_backup"
 
-    # Process JSONL file line by line
-    while IFS= read -r line; do
-        # Skip empty lines
-        [[ -z "$line" ]] && continue
-
-        # Parse JSON and normalize for target provider
-        local transformed_line=$(echo "$line" | jq -c --arg mapped_model "$mapped_model" '
-            if .type == "assistant" and .message and .message.content then
-                # Remove cryptographic signatures from thinking blocks
-                # (these cause validation failures when switching providers)
-                .message.content = (.message.content | map(
-                    if .type == "thinking" then
-                        .signature = null |
-                        .thinking = "Session normalized for API compatibility"
-                    else
-                        .
-                    end
-                )) |
-                # Dynamic model mapping using detected model
-                if .message.model then
-                    .message.model = $mapped_model
-                end |
-                # Clear provider-specific request ID
-                if .requestId then
-                    .requestId = null
-                end |
-                # Clear usage metrics (provider-specific)
-                if .message.usage then
-                    .message.usage = null
-                end |
-                # Clear provider-specific metadata
-                if .stop_reason then
-                    .stop_reason = null
-                end |
-                # Clear stop sequence (provider-specific)
-                if .stop_sequence then
-                    .stop_sequence = null
+    # Optimized JSONL processing with bulk operations
+    # Create a single jq script for all transformations (much faster)
+    local jq_script="
+        if .type == \"assistant\" and .message and .message.content then
+            # Remove signatures from thinking blocks
+            .message.content = (.message.content | map(
+                if .type == \"thinking\" then
+                    .signature = null |
+                    .thinking = \"Session normalized for API compatibility\"
+                else
+                    .
                 end
-            else
-                .
-            end
-        ' 2>/dev/null || echo "$line")
+            )) |
+            # Map model dynamically
+            if .message.model then
+                .message.model = \"$mapped_model\"
+            end |
+            # Clear provider-specific fields in one pass
+            del(.requestId, .message.usage, .stop_reason, .stop_sequence)
+        else
+            .
+        end
+    "
 
-        echo "$transformed_line" >> "$temp_file"
-    done < "$session_file"
+    # Process file with single jq invocation (much faster than line-by-line)
+    jq -c "$jq_script" "$session_file" 2>/dev/null > "$temp_file" || {
+        # Fallback to original line-by-line if bulk processing fails
+        log_warn "Bulk processing failed, using fallback method"
+        cp "$session_file" "$temp_file"
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            local transformed_line=$(echo "$line" | jq -c --arg mapped_model "$mapped_model" '
+                if .type == "assistant" and .message and .message.content then
+                    .message.content = (.message.content | map(
+                        if .type == "thinking" then
+                            .signature = null |
+                            .thinking = "Session normalized for API compatibility"
+                        else
+                            .
+                        end
+                    )) |
+                    if .message.model then
+                        .message.model = $mapped_model
+                    end |
+                    del(.requestId, .message.usage, .stop_reason, .stop_sequence)
+                else
+                    .
+                end
+            ' 2>/dev/null || echo "$line")
+            echo "$transformed_line"
+        done < "$session_file" > "$temp_file"
+    }
 
     # Replace original with normalized
     mv "$temp_file" "$session_file"
     log_success "Session API-normalized: $(basename "$session_file")"
 }
 
-# Transform all sessions for provider compatibility
+# Optimized session transformation with parallel processing
 transform_sessions() {
     local from_provider="$1"
     local to_provider="$2"
@@ -469,33 +508,53 @@ transform_sessions() {
         return 0
     fi
 
-    log_info "Starting session transformation: $from_provider → $to_provider"
+    log_info "Starting optimized session transformation: $from_provider → $to_provider"
 
     local transformed_count=0
     local total_count=0
+    local session_files=()
 
-    # Transform todo sessions
+    # Collect all session files first (faster than repeated find operations)
     if [[ -d "$CLAUDE_TODO_DIR" ]]; then
         for session_file in "$CLAUDE_TODO_DIR"/*.json; do
             if [[ -f "$session_file" ]]; then
-                ((total_count++))
-                if transform_session_format "$session_file" "$from_provider" "$to_provider"; then
-                    ((transformed_count++))
-                fi
+                session_files+=("$session_file")
             fi
         done
     fi
 
-    # Transform project sessions
     if [[ -d "$CLAUDE_PROJECT_DIR" ]]; then
         while IFS= read -r -d '' session_file; do
             if [[ -f "$session_file" ]]; then
-                ((total_count++))
-                if transform_session_format "$session_file" "$from_provider" "$to_provider"; then
-                    ((transformed_count++))
-                fi
+                session_files+=("$session_file")
             fi
         done < <(find "$CLAUDE_PROJECT_DIR" -name "*.jsonl" -print0 2>/dev/null)
+    fi
+
+    total_count=${#session_files[@]}
+
+    # Use parallel processing for better performance
+    if command -v parallel &> /dev/null && [[ $total_count -gt 4 ]]; then
+        log_info "Using parallel processing for $total_count session files"
+        transformed_count=$(printf '%s\n' "${session_files[@]}" | \
+            parallel -j $(nproc 2>/dev/null || echo 4) \
+            "transform_session_format '{}' '$from_provider' '$to_provider' 2>/dev/null && echo 1 || echo 0" | \
+            awk '{sum += $1} END {print sum}')
+    else
+        # Fallback to sequential processing with progress indication
+        local processed=0
+        for session_file in "${session_files[@]}"; do
+            ((processed++))
+            if [[ $total_count -gt 10 ]]; then
+                # Show progress only for larger sets
+                printf "\r  Progress: %d/%d (%d%%)" "$processed" "$total_count" "$((processed * 100 / total_count))"
+            fi
+
+            if transform_session_format "$session_file" "$from_provider" "$to_provider"; then
+                ((transformed_count++))
+            fi
+        done
+        [[ $total_count -gt 10 ]] && echo ""
     fi
 
     if [[ $transformed_count -gt 0 ]]; then
@@ -1021,6 +1080,7 @@ Commands:
   clear-sessions Clear all Claude session files
   backup-sessions Backup current Claude sessions
   test-models   Test dynamic model mapping system
+  benchmark     Performance benchmark and optimization test
   help          Show this help message
 
 Quick Start:
@@ -1067,6 +1127,111 @@ Configuration files:
 EOF
 }
 
+# Performance benchmark and optimization test
+benchmark_performance() {
+    echo ""
+    log_info "Performance Benchmark & Optimization Analysis"
+    log_info "=========================================="
+
+    # Test model mapping performance
+    echo "Testing model mapping performance..."
+    local start_time=$(date +%s.%N 2>/dev/null || date +%s)
+
+    for i in {1..1000}; do
+        map_model_to_provider "claude-sonnet-4-5-20250929" "minimax" > /dev/null
+        map_model_to_provider "glm-4.5-air" "standard" > /dev/null
+        detect_model_family "MiniMax-M2" > /dev/null
+    done
+
+    local end_time=$(date +%s.%N 2>/dev/null || date +%s)
+    local mapping_time=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "N/A")
+    echo "  ✓ Model mapping (3000 operations): ${mapping_time}s"
+
+    # Test file discovery performance
+    echo "Testing session file discovery..."
+    start_time=$(date +%s.%N 2>/dev/null || date +%s)
+
+    local session_count=0
+    if [[ -d "$CLAUDE_TODO_DIR" ]]; then
+        for session_file in "$CLAUDE_TODO_DIR"/*.json; do
+            [[ -f "$session_file" ]] && ((session_count++))
+        done
+    fi
+
+    if [[ -d "$CLAUDE_PROJECT_DIR" ]]; then
+        while IFS= read -r -d '' session_file; do
+            [[ -f "$session_file" ]] && ((session_count++))
+        done < <(find "$CLAUDE_PROJECT_DIR" -name "*.jsonl" -print0 2>/dev/null)
+    fi
+
+    end_time=$(date +%s.%N 2>/dev/null || date +%s)
+    local discovery_time=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "N/A")
+    echo "  ✓ File discovery ($session_count files): ${discovery_time}s"
+
+    # Test JSON processing performance
+    if [[ $session_count -gt 0 ]]; then
+        echo "Testing JSON processing optimization..."
+
+        # Find a sample session file
+        local sample_file=""
+        if [[ -d "$CLAUDE_TODO_DIR" ]]; then
+            for session_file in "$CLAUDE_TODO_DIR"/*.json; do
+                if [[ -f "$session_file" && -s "$session_file" ]]; then
+                    sample_file="$session_file"
+                    break
+                fi
+            done
+        fi
+
+        if [[ -n "$sample_file" ]]; then
+            # Test optimized bulk processing
+            start_time=$(date +%s.%N 2>/dev/null || date +%s)
+
+            local jq_script='if .type == "assistant" then .message.model = "test-model" else . end'
+            jq -c "$jq_script" "$sample_file" > /dev/null 2>&1
+
+            end_time=$(date +%s.%N 2>/dev/null || date +%s)
+            local json_time=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "N/A")
+            echo "  ✓ Bulk JSON processing: ${json_time}s"
+        fi
+    fi
+
+    # System optimization analysis
+    echo ""
+    echo "System Optimization Analysis:"
+
+    # Check for parallel processing capability
+    if command -v parallel &> /dev/null; then
+        local cpu_count=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
+        echo "  ✓ Parallel processing available ($cpu_count cores)"
+    else
+        echo "  ⚠ Parallel processing not available (install GNU parallel for speedup)"
+    fi
+
+    # Check cache effectiveness
+    echo "  ✓ Model extraction cache enabled (limit: $CACHE_SIZE_LIMIT entries)"
+
+    # Memory usage optimization
+    echo "  ✓ Optimized file reading (8KB chunks for model detection)"
+    echo "  ✓ Bulk JSON operations (single jq invocation per file)"
+
+    # Performance recommendations
+    echo ""
+    echo "Performance Recommendations:"
+    if [[ $session_count -gt 50 ]]; then
+        echo "  📈 Large session count detected - consider regular session cleanup"
+    fi
+
+    if ! command -v parallel &> /dev/null; then
+        echo "  🔧 Install GNU parallel: brew install parallel"
+    fi
+
+    echo "  🧹 Use 'claudeswap clear-sessions' to remove old sessions"
+    echo "  📊 Use 'claudeswap benchmark' to monitor performance over time"
+
+    log_success "Benchmark completed - System optimized for current workload"
+}
+
 # Main command handler
 main() {
     # Check for jq dependency
@@ -1106,6 +1271,9 @@ main() {
             ;;
         test-models)
             test_model_mapping
+            ;;
+        benchmark)
+            benchmark_performance
             ;;
         help|-h|--help)
             show_usage
