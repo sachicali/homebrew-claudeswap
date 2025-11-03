@@ -1,12 +1,12 @@
 class ClaudeSwap < Formula
   desc "Safely swap between Z.ai, MiniMax, and standard Anthropic Claude configurations"
   homepage "https://github.com/sachicali/homebrew-claude-swap"
-  version "1.0.0"
+  version "1.1.0"
   license "MIT"
 
   if OS.mac?
-    url "https://github.com/sachicali/homebrew-claude-swap/archive/refs/tags/v1.0.0.tar.gz"
-    sha256 "69ccb797923de14536c9e4e0308d803a3b6ea6a0148ebb16c45e9de4b2045243"
+    url "https://github.com/sachicali/homebrew-claude-swap/archive/refs/tags/v1.1.0.tar.gz"
+    sha256 "4e47d29fe56b27bc3a7b05208331b0699a7799d73d49b1d8cade2a8d82e38933"
   end
 
   depends_on "jq"
