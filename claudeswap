@@ -905,12 +905,17 @@ fetch_available_models() {
             ;;
     esac
 
-    # Remove duplicates and sort
+    # Remove duplicates and sort (compatible with older bash)
     local unique_models=()
-    declare -A seen
     for model in "${models[@]}"; do
-        if [[ -z "${seen[$model]}" ]]; then
-            seen["$model"]=1
+        local found=0
+        for existing in "${unique_models[@]}"; do
+            if [[ "$existing" == "$model" ]]; then
+                found=1
+                break
+            fi
+        done
+        if [[ $found -eq 0 ]]; then
             unique_models+=("$model")
         fi
     done
@@ -949,7 +954,11 @@ get_model_details() {
 select_model_interactive() {
     local provider="$1"
     local available_models=()
-    readarray -t available_models < <(fetch_available_models "$provider")
+
+    # Use compatible array filling instead of readarray
+    while IFS= read -r model; do
+        [[ -n "$model" ]] && available_models+=("$model")
+    done < <(fetch_available_models "$provider")
 
     if [[ ${#available_models[@]} -eq 0 ]]; then
         log_error "No models available for provider: $provider"
@@ -1006,11 +1015,13 @@ swap_to_zai() {
     backup_settings
 
     # Interactive model selection
+    log_info "Starting interactive model selection..."
     local selected_model=$(select_model_interactive "zai")
     if [[ -z "$selected_model" ]]; then
-        log_error "No model selected. Aborting."
-        return 1
+        log_warning "Interactive selection failed, using default GLM model."
+        selected_model="glm-4.6"
     fi
+    log_info "Selected model: $selected_model"
 
     # Read current settings
     local current_json=$(cat "$SETTINGS_FILE")
@@ -1265,7 +1276,7 @@ show_usage() {
 Usage: claudeswap [COMMAND]
 
 Commands:
-  zai           Switch to Z.ai configuration
+  zai           Switch to Z.ai GLM configuration
   minimax       Switch to MiniMax configuration
   standard      Switch to standard Anthropic configuration
   status        Show current configuration status
@@ -1307,9 +1318,9 @@ Where to get tokens:
   Standard Anthropic: https://console.anthropic.com/
 
 Examples:
-  claudeswap zai        # Switch to Z.ai (interactive if not configured)
-  claudeswap minimax    # Switch to MiniMax (interactive if not configured)
-  claudeswap standard   # Switch to standard Anthropic
+  claudeswap zai        # Switch to Z.ai GLM (select from glm-4.6, glm-4.5, glm-4.5-air)
+  claudeswap minimax    # Switch to MiniMax (select from MiniMax-M2, MiniMax-M1)
+  claudeswap standard   # Switch to standard Anthropic (select from Claude models)
   claudeswap status     # Show current config
   claudeswap restore    # Restore latest backup
 
