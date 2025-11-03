@@ -797,73 +797,155 @@ get_current_config() {
 }
 
 # Fetch available models from providers dynamically
+# Enhanced model fetching using OpenRouter as reference
 fetch_available_models() {
     local provider="$1"
     local models=()
 
+    # Get OpenRouter model list as reference (public, no auth needed)
+    local openrouter_models=""
+    if command -v curl >/dev/null 2>&1; then
+        openrouter_models=$(curl -s --max-time 15 \
+            "https://openrouter.ai/api/v1/models" 2>/dev/null | \
+            jq -r '.data[] | "\(.id)|\(.context_length)|\(.pricing.prompt)|\(.pricing.completion)"' 2>/dev/null || echo "")
+    fi
+
     case "$provider" in
         "standard")
-            # Fetch current Anthropic models via API
-            if command -v curl >/dev/null 2>&1; then
-                log_info "Fetching available Anthropic models..."
+            log_info "Fetching available Anthropic models..."
 
-                # Try to get models from Anthropic's API documentation
-                local models_response=$(curl -s --max-time 10 \
+            # Extract Anthropic models from OpenRouter data
+            if [[ -n "$openrouter_models" ]]; then
+                while IFS='|' read -r model_id context_length prompt_price completion_price; do
+                    if [[ "$model_id" == anthropic/* ]]; then
+                        local clean_model="${model_id#anthropic/}"
+                        # Convert OpenRouter naming to Anthropic API naming
+                        case "$clean_model" in
+                            "claude-sonnet-4.5") models+=("claude-sonnet-4-5-20250929") ;;
+                            "claude-haiku-4.5") models+=("claude-haiku-4-5-20251001") ;;
+                            "claude-opus-4.1") models+=("claude-opus-4.1") ;;
+                            "claude-opus-4") models+=("claude-opus-4") ;;
+                            *) models+=("$clean_model") ;;
+                        esac
+                    fi
+                done <<< "$openrouter_models"
+            fi
+
+            # Try direct Anthropic docs as backup
+            if [[ ${#models[@]} -eq 0 ]] && command -v curl >/dev/null 2>&1; then
+                local docs_models=$(curl -s --max-time 10 \
                     "https://docs.anthropic.com/en/api/models" 2>/dev/null | \
                     grep -oE "claude-[a-z]+-[0-9-]+" | sort -u | head -10)
 
-                if [[ -n "$models_response" ]]; then
-                    while IFS= read -r model; do
-                        [[ -n "$model" ]] && models+=("$model")
-                    done <<< "$models_response"
-                fi
+                while IFS= read -r model; do
+                    [[ -n "$model" ]] && models+=("$model")
+                done <<< "$docs_models"
+            fi
 
-                # Fallback to known current models as of Nov 3, 2025
-                if [[ ${#models[@]} -eq 0 ]]; then
-                    models=("claude-sonnet-4-5-20250929" "claude-haiku-4-5-20251001")
-                fi
-            else
+            # Final fallback to known current models
+            if [[ ${#models[@]} -eq 0 ]]; then
                 models=("claude-sonnet-4-5-20250929" "claude-haiku-4-5-20251001")
             fi
             ;;
         "minimax")
-            # Try to fetch MiniMax models dynamically
-            if command -v curl >/dev/null 2>&1; then
-                log_info "Fetching available MiniMax models..."
-                # For now, use known MiniMax models
+            log_info "Fetching available MiniMax models..."
+
+            # Extract MiniMax models from OpenRouter data
+            if [[ -n "$openrouter_models" ]]; then
+                while IFS='|' read -r model_id context_length prompt_price completion_price; do
+                    if [[ "$model_id" == minimax/* ]] || [[ "$model_id" == *minimax* ]]; then
+                        local clean_model="${model_id#*/}"
+                        models+=("$clean_model")
+                    fi
+                done <<< "$openrouter_models"
+            fi
+
+            # Fallback to known MiniMax models
+            if [[ ${#models[@]} -eq 0 ]]; then
                 models=("MiniMax-M2" "MiniMax-M1")
-            else
-                models=("MiniMax-M2")
             fi
             ;;
         "zai"|"glm")
-            # Try to fetch Z.ai GLM models dynamically
-            if command -v curl >/dev/null 2>&1 && [[ -n "$ZAI_AUTH_TOKEN" ]]; then
-                log_info "Fetching available GLM models from Z.ai..."
-                # Test connectivity to Z.ai and try to get model info
-                local test_response=$(curl -s --max-time 10 \
+            log_info "Fetching available GLM models..."
+
+            # Extract GLM models from OpenRouter data
+            if [[ -n "$openrouter_models" ]]; then
+                while IFS='|' read -r model_id context_length prompt_price completion_price; do
+                    if [[ "$model_id" == *glm* ]] || [[ "$model_id" == zhipuai/* ]]; then
+                        local clean_model="${model_id#*/}"
+                        # Convert OpenRouter naming to standard GLM naming
+                        case "$clean_model" in
+                            "glm-4.6"|"glm-4.6-exacto") models+=("glm-4.6") ;;
+                            "glm-4.5v"|"glm-4.5") models+=("glm-4.5") ;;
+                            "glm-4.5-air"|"glm-4.5-air:free") models+=("glm-4.5-air") ;;
+                            *glm-4*) models+=("glm-4") ;;
+                            *glm-3*) models+=("glm-3-turbo") ;;
+                            *) models+=("$clean_model") ;;
+                        esac
+                    fi
+                done <<< "$openrouter_models"
+            fi
+
+            # Try Z.ai API directly if we have auth
+            if [[ ${#models[@]} -eq 0 ]] && command -v curl >/dev/null 2>&1 && [[ -n "$ZAI_AUTH_TOKEN" ]]; then
+                local zai_models=$(curl -s --max-time 10 \
                     -H "Authorization: Bearer $ZAI_AUTH_TOKEN" \
                     "$ZAI_BASE_URL/v1/models" 2>/dev/null | \
                     jq -r '.data[].id // empty' 2>/dev/null | grep glm || echo "")
 
-                if [[ -n "$test_response" ]]; then
-                    while IFS= read -r model; do
-                        [[ -n "$model" ]] && models+=("$model")
-                    done <<< "$test_response"
-                fi
+                while IFS= read -r model; do
+                    [[ -n "$model" ]] && models+=("$model")
+                done <<< "$zai_models"
             fi
 
-            # Fallback to known GLM models
+            # Final fallback to known GLM models
             if [[ ${#models[@]} -eq 0 ]]; then
                 models=("glm-4.6" "glm-4.5" "glm-4.5-air")
             fi
             ;;
     esac
 
-    printf '%s\n' "${models[@]}"
+    # Remove duplicates and sort
+    local unique_models=()
+    declare -A seen
+    for model in "${models[@]}"; do
+        if [[ -z "${seen[$model]}" ]]; then
+            seen["$model"]=1
+            unique_models+=("$model")
+        fi
+    done
+
+    printf '%s\n' "${unique_models[@]}"
 }
 
-# Interactive model selection
+# Get detailed model information from OpenRouter data
+get_model_details() {
+    local model_name="$1"
+    local provider="$2"
+    local details=""
+
+    if command -v curl >/dev/null 2>&1; then
+        local openrouter_data=$(curl -s --max-time 10 \
+            "https://openrouter.ai/api/v1/models" 2>/dev/null | \
+            jq -r ".data[] | select(.id == \"$provider/$model_name\" or .id == \"$model_name\") | \"\(.context_length)|\(.pricing.prompt)|\(.pricing.completion)\"" 2>/dev/null)
+
+        if [[ -n "$openrouter_data" ]]; then
+            IFS='|' read -r context_length prompt_price completion_price <<< "$openrouter_data"
+
+            if [[ -n "$context_length" ]] && [[ "$context_length" != "null" ]]; then
+                details=" Context: $(numfmt --to=si <<< "$context_length")"
+            fi
+
+            if [[ -n "$prompt_price" ]] && [[ "$prompt_price" != "null" ]]; then
+                details+=" Price: $prompt_price/1M"
+            fi
+        fi
+    fi
+
+    echo "$details"
+}
+
+# Enhanced interactive model selection with details
 select_model_interactive() {
     local provider="$1"
     local available_models=()
@@ -877,7 +959,13 @@ select_model_interactive() {
     echo ""
     log_info "Available models for $provider:"
     for i in "${!available_models[@]}"; do
-        echo "  $((i+1)). ${available_models[i]}"
+        local model="${available_models[i]}"
+        local details=$(get_model_details "$model" "$provider")
+        if [[ -n "$details" ]]; then
+            printf "  %2d. %-30s%s\n" $((i+1)) "$model" "$details"
+        else
+            printf "  %2d. %s\n" $((i+1)) "$model"
+        fi
     done
 
     while true; do
@@ -895,7 +983,9 @@ select_model_interactive() {
         fi
 
         if [[ "$choice" =~ ^[0-9]+$ ]] && [[ $choice -ge 1 ]] && [[ $choice -le ${#available_models[@]} ]]; then
-            echo "${available_models[$((choice-1))]}"
+            local selected_model="${available_models[$((choice-1))]}"
+            echo "$selected_model"
+            log_info "Selected: $selected_model$(get_model_details "$selected_model" "$provider")"
             return 0
         else
             log_error "Invalid selection. Please enter a number between 1 and ${#available_models[@]}"
