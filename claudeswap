@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
-# claude-swap: Safely swap between Z.ai, MiniMax, and standard Anthropic Claude configurations
-# Usage: claude-swap [zai|minimax|standard]
+# claudeswap: Safely swap between Z.ai, MiniMax, and standard Anthropic Claude configurations
+# Usage: claudeswap [zai|minimax|standard]
 
 set -euo pipefail
 
@@ -430,7 +430,7 @@ show_status() {
 # Show usage
 show_usage() {
     cat << EOF
-Usage: claude-swap [COMMAND]
+Usage: claudeswap [COMMAND]
 
 Commands:
   zai           Switch to Z.ai configuration
@@ -442,7 +442,7 @@ Commands:
 
 Quick Start:
   Run any command and the tool will prompt you interactively if credentials are needed!
-  (e.g., claude-swap zai or claude-swap minimax)
+  (e.g., claudeswap zai or claudeswap minimax)
 
 Configuration:
   Method 1 - Interactive (Recommended):
@@ -467,11 +467,11 @@ Where to get tokens:
   Standard Anthropic: https://console.anthropic.com/
 
 Examples:
-  claude-swap zai        # Switch to Z.ai (interactive if not configured)
-  claude-swap minimax    # Switch to MiniMax (interactive if not configured)
-  claude-swap standard   # Switch to standard Anthropic
-  claude-swap status     # Show current config
-  claude-swap restore    # Restore latest backup
+  claudeswap zai        # Switch to Z.ai (interactive if not configured)
+  claudeswap minimax    # Switch to MiniMax (interactive if not configured)
+  claudeswap standard   # Switch to standard Anthropic
+  claudeswap status     # Show current config
+  claudeswap restore    # Restore latest backup
 
 Configuration files:
   Settings:     $SETTINGS_FILE

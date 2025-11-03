@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# One-command installer for claude-swap via Homebrew
-# Usage: curl -fsSL https://raw.githubusercontent.com/chicali/homebrew-claude-swap/main/install-homebrew.sh | bash
+# One-command installer for claudeswap via Homebrew
+# Usage: curl -fsSL https://raw.githubusercontent.com/chicali/homebrew-claudeswap/main/install-homebrew.sh | bash
 
 set -euo pipefail
 
@@ -39,16 +39,16 @@ echo -e "${GREEN}✓${NC} jq is installed"
 echo ""
 
 # Tap the repository
-TAP_URL="chicali/claude-swap"
+TAP_URL="chicali/claudeswap"
 echo -e "${BLUE}Tapping ${TAP_URL}...${NC}"
 brew tap "$TAP_URL"
 
 echo -e "${GREEN}✓${NC} Tapped repository"
 echo ""
 
-# Install claude-swap
-echo -e "${BLUE}Installing claude-swap...${NC}"
-brew install claude-swap
+# Install claudeswap
+echo -e "${BLUE}Installing claudeswap...${NC}"
+brew install claudeswap
 
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════╗${NC}"
@@ -57,7 +57,7 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo -e "${RED}⚠️  IMPORTANT: Configure Your Credentials! ⚠️${NC}"
 echo ""
-echo -e "${BLUE}Before using claude-swap, you MUST set up your API credentials:${NC}"
+echo -e "${BLUE}Before using claudeswap, you MUST set up your API credentials:${NC}"
 echo ""
 echo -e "${YELLOW}Step 1:${NC} Edit your shell configuration file"
 echo -e "  ${CYAN}vim ~/.zshrc${NC}   (or nano, code, etc.)"
@@ -78,16 +78,16 @@ echo -e "${YELLOW}Step 3:${NC} Reload your shell"
 echo -e "  ${CYAN}source ~/.zshrc${NC}"
 echo ""
 echo -e "${YELLOW}Step 4:${NC} Test the tool"
-echo -e "  ${CYAN}claude-swap status${NC}"
+echo -e "  ${CYAN}claudeswap status${NC}"
 echo ""
 echo -e "${BLUE}Usage:${NC}"
-echo -e "  ${YELLOW}claude-swap zai${NC}       - Switch to Z.ai"
-echo -e "  ${YELLOW}claude-swap minimax${NC}   - Switch to MiniMax"
-echo -e "  ${YELLOW}claude-swap standard${NC}  - Switch to standard Anthropic"
-echo -e "  ${YELLOW}claude-swap status${NC}    - Check current config"
+echo -e "  ${YELLOW}claudeswap zai${NC}       - Switch to Z.ai"
+echo -e "  ${YELLOW}claudeswap minimax${NC}   - Switch to MiniMax"
+echo -e "  ${YELLOW}claudeswap standard${NC}  - Switch to standard Anthropic"
+echo -e "  ${YELLOW}claudeswap status${NC}    - Check current config"
 echo ""
-echo -e "${GREEN}For help:${NC} ${CYAN}claude-swap help${NC}"
+echo -e "${GREEN}For help:${NC} ${CYAN}claudeswap help${NC}"
 echo ""
 echo -e "${BLUE}See example configurations:${NC}"
-echo -e "  ${CYAN}/opt/homebrew/share/doc/claude-swap/example-configs.md${NC}"
+echo -e "  ${CYAN}/opt/homebrew/share/doc/claudeswap/example-configs.md${NC}"
 echo ""

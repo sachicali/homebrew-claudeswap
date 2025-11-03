@@ -25,10 +25,10 @@ source ~/.zshrc
 
 Then use the tool:
 ```bash
-claude-swap zai       # Switch to Z.ai
-claude-swap minimax   # Switch to MiniMax
-claude-swap standard  # Switch to standard
-claude-swap status    # Check config
+claudeswap zai       # Switch to Z.ai
+claudeswap minimax   # Switch to MiniMax
+claudeswap standard  # Switch to standard
+claudeswap status    # Check config
 ```
 
 ## Example: Standard Anthropic Configuration
@@ -84,7 +84,7 @@ cp ~/.claude/backups/settings_20251102_143022.json ~/.claude/settings.json
 
 Or use the built-in restore command:
 ```bash
-claude-swap restore
+claudeswap restore
 ```
 
 ## Getting Your API Tokens

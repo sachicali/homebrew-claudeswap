@@ -11,8 +11,8 @@ This tool requires you to configure your own API credentials. **No credentials a
 ### Step 1: Install the Tool
 
 ```bash
-brew tap chicali/claude-swap
-brew install claude-swap
+brew tap chicali/claudeswap
+brew install claudeswap
 ```
 
 ### Step 2: Get Your API Tokens
@@ -67,7 +67,7 @@ source ~/.zshrc
 ### Step 5: Test
 
 ```bash
-claude-swap status
+claudeswap status
 ```
 
 You should see your current configuration. If you haven't set up tokens yet, you'll see warnings.
@@ -155,31 +155,31 @@ brew install jq
 ### Check Your Current Configuration
 
 ```bash
-claude-swap status
+claudeswap status
 ```
 
 ### Switch to Z.ai (if you have access)
 
 ```bash
-claude-swap zai
+claudeswap zai
 ```
 
 ### Switch to MiniMax (if you have access)
 
 ```bash
-claude-swap minimax
+claudeswap minimax
 ```
 
 ### Switch to Standard Anthropic
 
 ```bash
-claude-swap standard
+claudeswap standard
 ```
 
 ### Restore from Backup
 
 ```bash
-claude-swap restore
+claudeswap restore
 ```
 
 ---
@@ -202,7 +202,7 @@ Before every change, a timestamped backup is created:
 
 You can restore any backup manually or with:
 ```bash
-claude-swap restore
+claudeswap restore
 ```
 
 ---
@@ -232,12 +232,12 @@ export CLAUDE_STANDARD_TIMEOUT="..."    # Optional (default: 120000)
 
 Run:
 ```bash
-claude-swap help
+claudeswap help
 ```
 
 Or check the examples:
 ```bash
-cat /opt/homebrew/share/doc/claude-swap/example-configs.md
+cat /opt/homebrew/share/doc/claudeswap/example-configs.md
 ```
 
 ---

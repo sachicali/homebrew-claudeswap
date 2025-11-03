@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Local installer for claude-swap - no Homebrew tap needed
+# Local installer for claudeswap - no Homebrew tap needed
 # Usage: bash install-local.sh
 
 set -euo pipefail
@@ -62,7 +62,7 @@ echo ""
 
 # Install to /usr/local/bin
 BIN_DIR="/usr/local/bin"
-INSTALL_PATH="$BIN_DIR/claude-swap"
+INSTALL_PATH="$BIN_DIR/claudeswap"
 
 echo -e "${BLUE}Installing to: $INSTALL_PATH${NC}"
 
@@ -73,11 +73,11 @@ fi
 
 # Copy the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_PATH="$SCRIPT_DIR/claude-swap"
+SCRIPT_PATH="$SCRIPT_DIR/claudeswap"
 
 if [[ ! -f "$SCRIPT_PATH" ]]; then
-    echo -e "${RED}Error: claude-swap script not found in current directory${NC}"
-    echo "Run this script from the directory containing claude-swap"
+    echo -e "${RED}Error: claudeswap script not found in current directory${NC}"
+    echo "Run this script from the directory containing claudeswap"
     exit 1
 fi
 
@@ -85,14 +85,14 @@ fi
 chmod +x "$SCRIPT_PATH"
 sudo cp "$SCRIPT_PATH" "$INSTALL_PATH"
 
-echo -e "${GREEN}✓${NC} Installed claude-swap to $INSTALL_PATH"
+echo -e "${GREEN}✓${NC} Installed claudeswap to $INSTALL_PATH"
 echo ""
 
 # Install zsh completion (optional)
-if [[ -f "$SCRIPT_DIR/claude-swap.zsh" ]]; then
+if [[ -f "$SCRIPT_DIR/claudeswap.zsh" ]]; then
     COMPLETION_DIR="/usr/local/share/zsh/site-functions"
     sudo mkdir -p "$COMPLETION_DIR"
-    sudo cp "$SCRIPT_DIR/claude-swap.zsh" "$COMPLETION_DIR/_claude-swap"
+    sudo cp "$SCRIPT_DIR/claudeswap.zsh" "$COMPLETION_DIR/_claudeswap"
     echo -e "${GREEN}✓${NC} Installed zsh completion"
 else
     echo -e "${YELLOW}⚠ zsh completion file not found, skipping${NC}"
@@ -106,17 +106,17 @@ echo ""
 
 # Test installation
 echo -e "${BLUE}Testing installation...${NC}"
-if command -v claude-swap &> /dev/null; then
-    echo -e "${GREEN}✓${NC} claude-swap command is available"
-    claude-swap --version 2>&1 || echo -e "${YELLOW}Note: --version flag not supported${NC}"
+if command -v claudeswap &> /dev/null; then
+    echo -e "${GREEN}✓${NC} claudeswap command is available"
+    claudeswap --version 2>&1 || echo -e "${YELLOW}Note: --version flag not supported${NC}"
 else
-    echo -e "${RED}✗ claude-swap command not found in PATH${NC}"
+    echo -e "${RED}✗ claudeswap command not found in PATH${NC}"
 fi
 
 echo ""
 echo -e "${RED}⚠️  IMPORTANT: Configure Your Credentials! ⚠️${NC}"
 echo ""
-echo -e "${BLUE}Before using claude-swap, you MUST set up your API credentials:${NC}"
+echo -e "${BLUE}Before using claudeswap, you MUST set up your API credentials:${NC}"
 echo ""
 echo -e "${YELLOW}Step 1:${NC} Edit your shell configuration file"
 echo -e "  ${CYAN}vim ~/.zshrc${NC}   (or nano, code, etc.)"
@@ -135,12 +135,12 @@ echo -e "${YELLOW}Step 3:${NC} Reload your shell"
 echo -e "  ${CYAN}source ~/.zshrc${NC}"
 echo ""
 echo -e "${YELLOW}Step 4:${NC} Test the tool"
-echo -e "  ${CYAN}claude-swap status${NC}"
+echo -e "  ${CYAN}claudeswap status${NC}"
 echo ""
 echo -e "${BLUE}Usage:${NC}"
-echo -e "  ${YELLOW}claude-swap zai${NC}       - Switch to Z.ai"
-echo -e "  ${YELLOW}claude-swap minimax${NC}   - Switch to MiniMax"
-echo -e "  ${YELLOW}claude-swap standard${NC}  - Switch to standard Anthropic"
+echo -e "  ${YELLOW}claudeswap zai${NC}       - Switch to Z.ai"
+echo -e "  ${YELLOW}claudeswap minimax${NC}   - Switch to MiniMax"
+echo -e "  ${YELLOW}claudeswap standard${NC}  - Switch to standard Anthropic"
 echo ""
-echo -e "${GREEN}For help:${NC} ${CYAN}claude-swap help${NC}"
+echo -e "${GREEN}For help:${NC} ${CYAN}claudeswap help${NC}"
 echo ""

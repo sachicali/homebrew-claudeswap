@@ -37,41 +37,41 @@ source ~/.zshrc
 
 ```bash
 # Install from the GitHub repository
-brew install sachicali/homebrew-cloud-swap/claude-swap
+brew install sachicali/homebrew-claude-swap/claudeswap
 ```
 
 ### Option 2: Manual Homebrew Formula
 
 1. Tap the repository:
 ```bash
-brew tap sachicali/homebrew-cloud-swap
+brew tap sachicali/homebrew-claude-swap
 ```
 
 2. Install the formula:
 ```bash
-brew install claude-swap
+brew install claudeswap
 ```
 
 ## Usage
 
 ```bash
 # Switch to Z.ai (50min timeout)
-claude-swap zai
+claudeswap zai
 
 # Switch to MiniMax (50min timeout, MiniMax-M2 model)
-claude-swap minimax
+claudeswap minimax
 
 # Switch to standard Anthropic (2min timeout)
-claude-swap standard
+claudeswap standard
 
 # Check current status
-claude-swap status
+claudeswap status
 
 # Restore from latest backup
-claude-swap restore
+claudeswap restore
 
 # Show help
-claude-swap help
+claudeswap help
 ```
 
 ## What Gets Changed
@@ -152,8 +152,8 @@ export CLAUDE_STANDARD_TIMEOUT="120000"  # 2 minutes
 ## Uninstallation
 
 ```bash
-brew uninstall claude-swap
-brew untap sachicali/homebrew-cloud-swap
+brew uninstall claudeswap
+brew untap sachicali/homebrew-claude-swap
 ```
 
 ## Troubleshooting

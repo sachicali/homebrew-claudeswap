@@ -13,10 +13,10 @@ class ClaudeSwap < Formula
 
   def install
     # Install the main script
-    bin.install "claude-swap"
+    bin.install "claudeswap"
 
     # Install the zsh completion file
-    zsh_completion.install "claude-swap.zsh" => "_claude-swap"
+    zsh_completion.install "claude-swap.zsh" => "_claudeswap"
 
     # Install documentation
     doc.install "README.md"
@@ -27,6 +27,6 @@ class ClaudeSwap < Formula
 
   test do
     # Test that the script runs and shows help
-    assert_match "Usage: claude-swap", shell_output("#{bin}/claude-swap help")
+    assert_match "Usage: claudeswap", shell_output("#{bin}/claudeswap help")
   end
 end
