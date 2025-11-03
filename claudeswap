@@ -101,7 +101,7 @@ interactive_setup() {
 
         # Add to zshrc
         echo "" >> ~/.zshrc
-        echo "# $service API Token - Added by claude-swap" >> ~/.zshrc
+        echo "# $service API Token - Added by claudeswap" >> ~/.zshrc
         echo "export $var_name=\"$token\"" >> ~/.zshrc
 
         echo -e "${GREEN}✓${NC} Token saved to ~/.zshrc"

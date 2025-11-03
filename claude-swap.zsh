@@ -1,6 +1,6 @@
-#compdef claude-swap
+#compdef claudeswap
 
-# zsh completion for claude-swap
+# zsh completion for claudeswap
 
 local cur prev
 
