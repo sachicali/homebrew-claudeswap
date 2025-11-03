@@ -1,12 +1,12 @@
 class ClaudeSwap < Formula
   desc "Safely swap between Z.ai, MiniMax, and standard Anthropic Claude configurations"
-  homepage "https://github.com/chicali/claude-swap"
+  homepage "https://github.com/sachicali/homebrew-claude-swap"
   version "1.0.0"
   license "MIT"
 
   if OS.mac?
-    url "https://github.com/chicali/claude-swap/archive/refs/tags/v1.0.0.tar.gz"
-    sha256 "TODO_GET_SHA256_AFTER_CREATING_TAG"
+    url "https://github.com/sachicali/homebrew-claude-swap/archive/refs/tags/v1.0.0.tar.gz"
+    sha256 "69ccb797923de14536c9e4e0308d803a3b6ea6a0148ebb16c45e9de4b2045243"
   end
 
   depends_on "jq"
@@ -21,13 +21,12 @@ class ClaudeSwap < Formula
     # Install documentation
     doc.install "README.md"
     doc.install "LICENSE"
-    
-    # Create example config files
-    (pkgshare/"examples").install "example-configs.md"
+    doc.install "SETUP-GUIDE.md"
+    doc.install "example-configs.md"
   end
 
   test do
-    # Test that the script runs
+    # Test that the script runs and shows help
     assert_match "Usage: claude-swap", shell_output("#{bin}/claude-swap help")
   end
 end
