@@ -1,6 +1,6 @@
 # Claude Swap
 
-A safe and robust tool to swap between Z.ai, MiniMax, GLM, and standard Anthropic Claude configurations with dynamic model mapping and performance optimization.
+A safe and robust tool to swap between GLM providers (Z.ai), MiniMax, and standard Anthropic Claude configurations with dynamic model mapping and performance optimization.
 
 ## ⚠️ IMPORTANT: Set Your Credentials First
 
@@ -86,10 +86,11 @@ claudeswap help
 
 ## What Gets Changed
 
-### Z.ai Configuration
+### Z.ai Configuration (GLM Provider)
 - Base URL: `https://api.z.ai/api/anthropic`
 - Timeout: 3000000ms (50 minutes)
 - Uses your `CLAUDE_ZAI_AUTH_TOKEN`
+- Provides access to GLM models through Z.ai API
 
 ### MiniMax Configuration
 - Base URL: `https://api.minimax.io/anthropic`
@@ -107,7 +108,7 @@ claudeswap help
 
 ### Dynamic Model Mapping
 - **Universal Model Support**: Automatically detects and maps any model type (sonnet, haiku, opus, GLM, MiniMax)
-- **Provider-Agnostic**: Seamlessly switch between any supported providers
+- **Provider-Agnostic**: Seamlessly switch between Anthropic, MiniMax, and GLM providers
 - **Smart Detection**: Identifies model families and performance tiers
 - **Future-Proof**: Handles new model releases automatically
 
