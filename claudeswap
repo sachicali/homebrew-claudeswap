@@ -843,7 +843,7 @@ fetch_available_models() {
             fi
 
             # Try direct Anthropic docs as backup
-            if [[ ${#models[@]} -eq 0 ]] && command -v curl >/dev/null 2>&1; then
+            if [[ -z "${models:-}" ]] || [[ ${#models[@]} -eq 0 ]] && command -v curl >/dev/null 2>&1; then
                 local docs_models=$(curl -s --max-time 10 \
                     "https://docs.anthropic.com/en/api/models" 2>/dev/null | \
                     grep -oE "claude-[a-z]+-[0-9-]+" | sort -u | head -10)
@@ -854,7 +854,7 @@ fetch_available_models() {
             fi
 
             # Final fallback to known current models
-            if [[ ${#models[@]} -eq 0 ]]; then
+            if [[ -z "${models:-}" ]] || [[ ${#models[@]} -eq 0 ]]; then
                 models=("claude-sonnet-4-5-20250929" "claude-haiku-4-5-20251001")
             fi
             ;;
@@ -872,7 +872,7 @@ fetch_available_models() {
             fi
 
             # Fallback to known MiniMax models
-            if [[ ${#models[@]} -eq 0 ]]; then
+            if [[ -z "${models:-}" ]] || [[ ${#models[@]} -eq 0 ]]; then
                 models=("MiniMax-M2" "MiniMax-M1")
             fi
             ;;
@@ -918,7 +918,7 @@ fetch_available_models() {
             fi
 
             # Try Z.ai API directly if we have auth
-            if [[ ${#models[@]} -eq 0 ]] && command -v curl >/dev/null 2>&1 && [[ -n "$ZAI_AUTH_TOKEN" ]]; then
+            if [[ -z "${models:-}" ]] || [[ ${#models[@]} -eq 0 ]] && command -v curl >/dev/null 2>&1 && [[ -n "$ZAI_AUTH_TOKEN" ]]; then
                 local zai_models=$(curl -s --max-time 10 \
                     -H "Authorization: Bearer $ZAI_AUTH_TOKEN" \
                     "$ZAI_BASE_URL/v1/models" 2>/dev/null | \
@@ -930,7 +930,7 @@ fetch_available_models() {
             fi
 
             # Enhanced final fallback to best known GLM models (prioritized)
-            if [[ ${#models[@]} -eq 0 ]]; then
+            if [[ -z "${models:-}" ]] || [[ ${#models[@]} -eq 0 ]]; then
                 models=(
                     "glm-4.6"           # Latest and most capable
                     "glm-4.5"           # Previous stable version
@@ -979,7 +979,14 @@ get_model_details() {
             IFS='|' read -r context_length prompt_price completion_price <<< "$openrouter_data"
 
             if [[ -n "$context_length" ]] && [[ "$context_length" != "null" ]]; then
-                details=" Context: $(numfmt --to=si <<< "$context_length")"
+                # Format context length in human-readable form (portable alternative to numfmt)
+                local context_num="$context_length"
+                if [[ "$context_length" -gt 1000000 ]]; then
+                    context_num="$(($context_length / 1000000))M"
+                elif [[ "$context_length" -gt 1000 ]]; then
+                    context_num="$(($context_length / 1000))K"
+                fi
+                details=" Context: $context_num"
             fi
 
             if [[ -n "$prompt_price" ]] && [[ "$prompt_price" != "null" ]]; then
