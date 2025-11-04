@@ -3,6 +3,8 @@
 # Claude Swap - Modular Configuration Manager
 # Main entry point script with TIGERSTYLE modular architecture
 
+readonly VERSION="1.2.1"
+
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$SCRIPT_DIR/lib"
@@ -188,6 +190,9 @@ main() {
         "clear")
             handle_clear
             ;;
+        "version"|"--version"|"-v")
+            echo "claudeswap version $VERSION"
+            ;;
         "help"|"--help"|"-h")
             echo "Claude Swap - Configuration Manager"
             echo ""
@@ -200,6 +205,7 @@ main() {
             echo "  setup          Interactive credential setup"
             echo "  backup         Backup current sessions"
             echo "  clear          Clear all sessions"
+            echo "  version        Show version information"
             echo "  help           Show this help message"
             echo ""
             echo "Examples:"
