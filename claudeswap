@@ -943,20 +943,23 @@ fetch_available_models() {
             ;;
     esac
 
-    # Remove duplicates and sort (compatible with older bash)
+    # Remove duplicates and sort (compatible with bash and zsh)
     local unique_models=()
-    for model in "${models[@]}"; do
-        local found=0
-        for existing in "${unique_models[@]}"; do
-            if [[ "$existing" == "$model" ]]; then
-                found=1
-                break
+    # Safe array iteration that works in both bash and zsh
+    if [[ ${#models[@]} -gt 0 ]]; then
+        for model in "${models[@]}"; do
+            local found=0
+            for existing in "${unique_models[@]}"; do
+                if [[ "$existing" == "$model" ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [[ $found -eq 0 ]]; then
+                unique_models+=("$model")
             fi
         done
-        if [[ $found -eq 0 ]]; then
-            unique_models+=("$model")
-        fi
-    done
+    fi
 
     printf '%s\n' "${unique_models[@]}"
 }
