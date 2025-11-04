@@ -364,8 +364,8 @@ detect_model_tier() {
     esac
 }
 
-# Cache for model extraction to avoid repeated parsing
-declare -A MODEL_CACHE
+# Cache for model extraction to avoid repeated parsing (file-based for zsh compatibility)
+MODEL_CACHE_FILE="/tmp/claude_model_cache_$$"
 CACHE_SIZE_LIMIT=100
 
 # Extract model from session for analysis with caching
@@ -375,9 +375,14 @@ extract_session_model() {
 
     # Check cache first
     local cache_key="${session_file}:${file_hash}"
-    if [[ -n "${MODEL_CACHE[$cache_key]}" ]]; then
-        echo "${MODEL_CACHE[$cache_key]}"
-        return 0
+
+    # Check file cache
+    if [[ -f "$MODEL_CACHE_FILE" ]]; then
+        local cached_model=$(grep "^${cache_key}:" "$MODEL_CACHE_FILE" 2>/dev/null | cut -d: -f2-)
+        if [[ -n "$cached_model" ]]; then
+            echo "$cached_model"
+            return 0
+        fi
     fi
 
     # Extract model (optimized - read only first few KB)
@@ -389,22 +394,16 @@ extract_session_model() {
             jq -r '.message.model // "unknown"' 2>/dev/null || echo "unknown")
     fi
 
-    # Update cache (with size management)
-    if [[ ${#MODEL_CACHE[@]} -ge $CACHE_SIZE_LIMIT ]]; then
-        # Clear oldest half of cache when limit reached
-        local keys_to_remove=()
-        local count=0
-        for key in "${!MODEL_CACHE[@]}"; do
-            keys_to_remove+=("$key")
-            ((count++))
-            [[ $count -ge $((CACHE_SIZE_LIMIT / 2)) ]] && break
-        done
-        for key in "${keys_to_remove[@]}"; do
-            unset MODEL_CACHE["$key"]
-        done
+    # Update file cache (with size management)
+    echo "${cache_key}:${model}" >> "$MODEL_CACHE_FILE" 2>/dev/null || true
+
+    # Trim cache file if it gets too large
+    local cache_lines=$(wc -l < "$MODEL_CACHE_FILE" 2>/dev/null || echo 0)
+    if [[ $cache_lines -gt $CACHE_SIZE_LIMIT ]]; then
+        tail -n $((CACHE_SIZE_LIMIT / 2)) "$MODEL_CACHE_FILE" > "${MODEL_CACHE_FILE}.tmp" 2>/dev/null || true
+        mv "${MODEL_CACHE_FILE}.tmp" "$MODEL_CACHE_FILE" 2>/dev/null || true
     fi
 
-    MODEL_CACHE[$cache_key]="$model"
     echo "$model"
 }
 
