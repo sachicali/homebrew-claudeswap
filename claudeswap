@@ -3,7 +3,7 @@
 # Claude Swap - Modular Configuration Manager
 # Main entry point script with TIGERSTYLE modular architecture
 
-readonly VERSION="1.2.7"
+readonly VERSION="1.2.8"
 
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -154,19 +154,23 @@ handle_set() {
     # Update authentication token based on provider
     local auth_token=""
     local timeout_ms=""
+    local base_url=""
 
     case "$provider" in
         "standard")
             auth_token="${ANTHROPIC_API_KEY:-}"
             timeout_ms="${STANDARD_TIMEOUT:-120000}"
+            base_url=""  # Standard Anthropic uses default API endpoint (no BASE_URL key)
             ;;
         "zai")
             auth_token="${ZAI_API_KEY:-}"
             timeout_ms="${ZAI_TIMEOUT:-3000000}"
+            base_url="${ZAI_BASE_URL:-$ZAI_BASE_URL_DEFAULT}"
             ;;
         "minimax")
             auth_token="${MINIMAX_API_KEY:-}"
             timeout_ms="${MINIMAX_TIMEOUT:-3000000}"
+            base_url="${MINIMAX_BASE_URL:-$MINIMAX_BASE_URL_DEFAULT}"
             ;;
     esac
 
@@ -176,11 +180,18 @@ handle_set() {
         return 1
     fi
 
-    # Update settings.json with correct path (env.ANTHROPIC_AUTH_TOKEN)
-    jq ".env.ANTHROPIC_AUTH_TOKEN = \"$auth_token\" | .env.API_TIMEOUT_MS = \"$timeout_ms\"" "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp"
+    # Update settings.json with provider-specific configuration
+    if [[ -n "$base_url" ]]; then
+        # Proxy providers (Z.ai, MiniMax): Set ANTHROPIC_BASE_URL
+        jq ".env.ANTHROPIC_AUTH_TOKEN = \"$auth_token\" | .env.API_TIMEOUT_MS = \"$timeout_ms\" | .env.ANTHROPIC_BASE_URL = \"$base_url\"" "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp"
+    else
+        # Standard Anthropic: Remove ANTHROPIC_BASE_URL if it exists
+        jq ".env.ANTHROPIC_AUTH_TOKEN = \"$auth_token\" | .env.API_TIMEOUT_MS = \"$timeout_ms\" | del(.env.ANTHROPIC_BASE_URL)" "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp"
+    fi
+
     if [[ $? -eq 0 ]]; then
         mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
-        log_success "Switched to $provider$([[ -n "$model" ]] && echo " (model: $model)")"
+        log_success "Switched to $provider$([[ -n "$model" ]] && echo " (model: $model)")$([[ -n "$base_url" ]] && echo " at $base_url")"
     else
         log_error "Failed to update settings file"
         rm -f "${SETTINGS_FILE}.tmp"
