@@ -3,7 +3,7 @@
 # Claude Swap - Modular Configuration Manager
 # Main entry point script with TIGERSTYLE modular architecture
 
-readonly VERSION="1.2.3"
+readonly VERSION="1.2.5"
 
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,8 +23,8 @@ elif [[ -d "/opt/homebrew/Cellar/claudeswap" ]]; then
         # Homebrew installs to libexec/lib
         if [[ -d "/opt/homebrew/Cellar/claudeswap/$latest_version/libexec/lib" ]]; then
             LIB_DIR="/opt/homebrew/Cellar/claudeswap/$latest_version/libexec/lib"
-            # Also update base dir to the Cellar location so modular files can find their dependencies
-            CLAUDE_SWAP_BASE_DIR="/opt/homebrew/Cellar/claudeswap/$latest_version"
+            # Also update base dir to libexec so modular files can find dependencies via ${CLAUDE_SWAP_BASE_DIR}/lib/
+            CLAUDE_SWAP_BASE_DIR="/opt/homebrew/Cellar/claudeswap/$latest_version/libexec"
         # Fallback for source installs
         elif [[ -d "/opt/homebrew/Cellar/claudeswap/$latest_version/lib" ]]; then
             LIB_DIR="/opt/homebrew/Cellar/claudeswap/$latest_version/lib"
