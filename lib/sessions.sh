@@ -63,9 +63,8 @@ clear_sessions() {
         local session_count=$(ls -1 "$CLAUDE_SESSION_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')
         if [[ "$session_count" -gt 0 ]]; then
             # NASA Rule 2: Verify session count is within reasonable bounds
-            local max_sessions=10000  # Fixed upper bound for safety
-            if [[ "$session_count" -gt "$max_sessions" ]]; then
-                log_error "Session count exceeds safety limit ($max_sessions)"
+            if [[ "$session_count" -gt "$MAX_SESSIONS_CLEANUP" ]]; then
+                log_error "Session count exceeds safety limit ($MAX_SESSIONS_CLEANUP)"
                 return 1
             fi
             if ! rm -f "$CLAUDE_SESSION_DIR"/*.json; then

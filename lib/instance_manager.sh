@@ -90,12 +90,11 @@ list_instances() {
     fi
 
     local -a instances=()
-    local max_instances=20  # NASA Rule 2: Fixed bound
 
-    # Find instance directories
+    # Find instance directories (NASA Rule 2: Fixed bound)
     local count=0
     for dir in "$INSTANCE_BASE_DIR"/*; do
-        if [[ $count -ge $max_instances ]]; then
+        if [[ $count -ge $MAX_INSTANCES_LIST ]]; then
             break
         fi
 
@@ -169,11 +168,10 @@ cleanup_instances() {
 
     log_info "Cleaning up instances older than $retention_days days..."
 
-    local max_instances=50  # NASA Rule 2: Fixed bound
     local count=0
 
     for dir in "$INSTANCE_BASE_DIR"/*; do
-        if [[ $count -ge $max_instances ]]; then
+        if [[ $count -ge $MAX_INSTANCES_CLEANUP ]]; then
             break
         fi
 

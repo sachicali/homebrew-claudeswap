@@ -23,11 +23,10 @@ build_comparison_data() {
     rows+=("Provider|Status|Base URL|Timeout|Features")
 
     # NASA Rule 2: Fixed bounds
-    local max_providers=10
     local provider_count=0
 
     for provider in "${providers[@]}"; do
-        if [[ $provider_count -ge $max_providers ]]; then
+        if [[ $provider_count -ge $MAX_PROVIDERS_DISPLAY ]]; then
             break
         fi
 

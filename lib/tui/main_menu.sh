@@ -28,9 +28,8 @@ show_main_menu() {
     )
 
     # NASA Rule 2: Fixed bound on menu items
-    local max_items=8
-    if [[ ${#menu_items[@]} -gt $max_items ]]; then
-        log_error "Menu items exceed maximum ($max_items)"
+    if [[ ${#menu_items[@]} -gt $MAX_TUI_MENU_ITEMS ]]; then
+        log_error "Menu items exceed maximum ($MAX_TUI_MENU_ITEMS)"
         return 1
     fi
 
@@ -58,10 +57,10 @@ show_main_menu() {
 
 # Main TUI loop (NASA Rule 4: <70 lines)
 run_tui_main_loop() {
-    local max_iterations=1000  # NASA Rule 2: Fixed upper bound
     local iteration=0
 
-    while [[ $iteration -lt $max_iterations ]]; do
+    # NASA Rule 2: Fixed upper bound
+    while [[ $iteration -lt $MAX_TUI_ITERATIONS ]]; do
         iteration=$((iteration + 1))
 
         local choice

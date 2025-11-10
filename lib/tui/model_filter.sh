@@ -43,13 +43,12 @@ show_model_filter_tui() {
         return 1
     fi
 
-    # Convert models to array
+    # Convert models to array (NASA Rule 2: Fixed bound)
     local -a model_array=()
-    local max_models=200  # NASA Rule 2: Fixed bound
     local model_count=0
 
     while IFS= read -r model; do
-        if [[ $model_count -ge $max_models ]]; then
+        if [[ $model_count -ge $MAX_MODELS_DISPLAY ]]; then
             break
         fi
         [[ -n "$model" ]] && model_array+=("$model")
@@ -98,18 +97,26 @@ show_model_filter_tui() {
 
         # Ask if user wants to copy to clipboard
         if gum confirm "Copy model name to clipboard?"; then
-            # Try different clipboard commands
+            # Try different clipboard commands with error checking
+            local clipboard_success=false
             if command -v pbcopy >/dev/null 2>&1; then
-                echo -n "$selected_model" | pbcopy
-                gum style --foreground="$GUM_SUCCESS_COLOR" "✓ Copied to clipboard"
+                if echo -n "$selected_model" | pbcopy 2>/dev/null; then
+                    clipboard_success=true
+                fi
             elif command -v xclip >/dev/null 2>&1; then
-                echo -n "$selected_model" | xclip -selection clipboard
-                gum style --foreground="$GUM_SUCCESS_COLOR" "✓ Copied to clipboard"
+                if echo -n "$selected_model" | xclip -selection clipboard 2>/dev/null; then
+                    clipboard_success=true
+                fi
             elif command -v xsel >/dev/null 2>&1; then
-                echo -n "$selected_model" | xsel --clipboard
+                if echo -n "$selected_model" | xsel --clipboard 2>/dev/null; then
+                    clipboard_success=true
+                fi
+            fi
+
+            if [[ "$clipboard_success" == "true" ]]; then
                 gum style --foreground="$GUM_SUCCESS_COLOR" "✓ Copied to clipboard"
             else
-                gum style --foreground="$GUM_WARNING_COLOR" "No clipboard tool found (pbcopy/xclip/xsel)"
+                gum style --foreground="$GUM_WARNING_COLOR" "⚠ Clipboard operation failed or no clipboard tool found"
             fi
         fi
     fi

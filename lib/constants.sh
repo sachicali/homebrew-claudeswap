@@ -93,3 +93,22 @@ readonly GUM_WARNING_COLOR="#FFFF00"
 readonly MAX_HISTORY_ENTRIES=1000
 readonly MAX_MENU_ITEMS=50
 readonly HISTORY_RETENTION_DAYS=90
+
+# Instance Manager Limits
+readonly MAX_INSTANCES_LIST=20
+readonly MAX_INSTANCES_CLEANUP=50
+
+# Session Management Limits
+readonly MAX_SESSIONS_CLEANUP=10000
+
+# TUI Component Limits
+readonly MAX_TUI_MENU_ITEMS=8
+readonly MAX_TUI_ITERATIONS=1000
+readonly MAX_PROVIDERS_DISPLAY=10
+readonly MAX_MODELS_DISPLAY=200
+
+# Provider Model Fetching Limits
+readonly MAX_UNIQUE_MODELS=200
+readonly MAX_FETCH_MODELS=500
+readonly MAX_FETCH_LINES=500
+readonly MAX_PROVIDER_PARSE_LINES=100

@@ -88,13 +88,20 @@ setup_service_credentials() {
         # Create backup
         cp ~/.zshrc ~/.zshrc.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
 
-        # Add to zshrc
+        # Check for existing entry and update if present
         # Security: Properly escape token to prevent injection
-        echo "" >> ~/.zshrc
-        echo "# $service API Token - Added by claudeswap" >> ~/.zshrc
-        printf "export %s='%s'\n" "$var_name" "$token" >> ~/.zshrc
-
-        echo -e "${GREEN}✓${NC} Token saved to ~/.zshrc"
+        if grep -q "^export $var_name=" ~/.zshrc 2>/dev/null; then
+            # Update existing line using sed with backup
+            # Use @ as delimiter to avoid conflicts with URLs in tokens
+            sed -i.bak "/^export $var_name=/c\\export $var_name='$token'" ~/.zshrc
+            echo -e "${GREEN}✓${NC} Updated existing token in ~/.zshrc"
+        else
+            # Add new entry
+            echo "" >> ~/.zshrc
+            echo "# $service API Token - Added by claudeswap" >> ~/.zshrc
+            printf "export %s='%s'\n" "$var_name" "$token" >> ~/.zshrc
+            echo -e "${GREEN}✓${NC} Token saved to ~/.zshrc"
+        fi
         echo ""
         echo -e "${YELLOW}Important:${NC} Run ${CYAN}source ~/.zshrc${NC} or restart your terminal"
         echo ""

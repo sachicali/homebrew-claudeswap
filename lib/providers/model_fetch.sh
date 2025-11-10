@@ -46,9 +46,7 @@ fetch_openrouter_data() {
 deduplicate_models() {
     local -n input_models=$1
     local unique_models=()
-    local max_unique=200
     local unique_count=0
-    local max_models=500
     local model_idx=0
 
     if [[ ${#input_models[@]} -eq 0 ]]; then
@@ -56,14 +54,14 @@ deduplicate_models() {
     fi
 
     for model in "${input_models[@]}"; do
-        if [[ $model_idx -ge $max_models ]] || [[ $unique_count -ge $max_unique ]]; then
+        if [[ $model_idx -ge $MAX_FETCH_MODELS ]] || [[ $unique_count -ge $MAX_UNIQUE_MODELS ]]; then
             break
         fi
 
         local found=0
         local existing_idx=0
         for existing in "${unique_models[@]}"; do
-            if [[ $existing_idx -ge $max_unique ]]; then
+            if [[ $existing_idx -ge $MAX_UNIQUE_MODELS ]]; then
                 break
             fi
             if [[ "$existing" == "$model" ]]; then
@@ -155,13 +153,12 @@ fetch_minimax_models() {
 fetch_kimi_models() {
     local openrouter_models="$1"
     local models=()
-    local max_lines=500
     local line_count=0
 
-    # Extract from OpenRouter
+    # Extract from OpenRouter (NASA Rule 2: Fixed bound)
     if [[ -n "$openrouter_models" ]]; then
         while IFS='|' read -r model_id context_length prompt_price completion_price; do
-            if [[ $line_count -ge $max_lines ]]; then
+            if [[ $line_count -ge $MAX_FETCH_LINES ]]; then
                 break
             fi
             if [[ "$model_id" == *moonshot* ]] || [[ "$model_id" == *kimi* ]]; then
@@ -180,10 +177,9 @@ fetch_kimi_models() {
             "$KIMI_BASE_URL/models" 2>/dev/null | \
             jq -r '.data[].id // empty' 2>/dev/null | grep -E "(moonshot|kimi)"); then
 
-            local max_kimi_lines=100
             local kimi_line_count=0
             while IFS= read -r model; do
-                if [[ $kimi_line_count -ge $max_kimi_lines ]]; then
+                if [[ $kimi_line_count -ge $MAX_PROVIDER_PARSE_LINES ]]; then
                     break
                 fi
                 [[ -n "$model" ]] && models+=("$model")
@@ -204,13 +200,12 @@ fetch_kimi_models() {
 fetch_glm_models() {
     local openrouter_models="$1"
     local models=()
-    local max_lines=500
     local line_count=0
 
-    # Extract from OpenRouter
+    # Extract from OpenRouter (NASA Rule 2: Fixed bound)
     if [[ -n "$openrouter_models" ]]; then
         while IFS='|' read -r model_id context_length prompt_price completion_price; do
-            if [[ $line_count -ge $max_lines ]]; then
+            if [[ $line_count -ge $MAX_FETCH_LINES ]]; then
                 break
             fi
 
@@ -250,10 +245,9 @@ fetch_glm_models() {
             "$ZAI_BASE_URL/v1/models" 2>/dev/null | \
             jq -r '.data[].id // empty' 2>/dev/null | grep glm); then
 
-            local max_zai_lines=100
             local zai_line_count=0
             while IFS= read -r model; do
-                if [[ $zai_line_count -ge $max_zai_lines ]]; then
+                if [[ $zai_line_count -ge $MAX_PROVIDER_PARSE_LINES ]]; then
                     break
                 fi
                 [[ -n "$model" ]] && models+=("$model")

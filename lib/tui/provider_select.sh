@@ -66,11 +66,10 @@ show_provider_selection_tui() {
     )
 
     # NASA Rule 2: Fixed bounds
-    local max_providers=10
     local provider_count=0
 
     for i in "${!provider_names[@]}"; do
-        if [[ $provider_count -ge $max_providers ]]; then
+        if [[ $provider_count -ge $MAX_PROVIDERS_DISPLAY ]]; then
             break
         fi
 
