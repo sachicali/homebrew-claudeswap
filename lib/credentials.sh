@@ -34,16 +34,42 @@ detect_shell_config() {
     esac
 }
 
+# Validate shell variable name
+validate_var_name() {
+    local var_name="$1"
+
+    # Variable name must start with letter or underscore, contain only alphanumeric and underscores
+    if [[ ! "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        return 1
+    fi
+    return 0
+}
+
 # Read password/token securely (with masking)
 read_token_secure() {
     local prompt="$1"
     local token=""
 
-    # Try to use read -s for password masking
-    if read -s -p "$prompt" token 2>/dev/null; then
+    # Show prompt explicitly (read -p writes to stderr, so show it first)
+    printf "%s" "$prompt" >&2
+
+    # Try to use read -s for password masking (don't redirect stderr)
+    if read -s token; then
+        printf "\n" >&2  # New line after hidden input
         echo "$token"
     else
-        # Fallback for systems that don't support -s
+        # Fallback failed - password masking not available
+        printf "\n" >&2
+        log_error "Password masking not available on this system"
+        echo ""
+        echo -e "${RED}⚠️  SECURITY WARNING:${NC} Your input will be visible on screen!"
+        echo -e "${YELLOW}Press Ctrl+C to abort, or Enter to continue at your own risk${NC}"
+        read -p "Continue? (yes/no): " confirm
+        if [[ ! "$confirm" =~ ^[Yy][Ee][Ss]$ ]]; then
+            log_info "Setup cancelled for security"
+            return 1
+        fi
+        # Read without masking after explicit confirmation
         read -p "$prompt" token
         echo "$token"
     fi
@@ -54,6 +80,12 @@ setup_service_credentials() {
     local service="$1"
     local var_name="$2"
     local url="$3"
+
+    # Validate variable name for security
+    if ! validate_var_name "$var_name"; then
+        log_error "Invalid variable name: $var_name"
+        return 1
+    fi
 
     echo ""
     echo -e "${YELLOW}╔══════════════════════════════════════════════════╗${NC}"
@@ -128,24 +160,48 @@ setup_service_credentials() {
     echo ""
 
     if [[ $reply =~ ^[Yy]$ ]]; then
-        # Create backup
-        local backup_file="${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
-        cp "$config_file" "$backup_file" 2>/dev/null || touch "$config_file"
-        [[ -f "$backup_file" ]] && echo -e "${GREEN}✓${NC} Created backup: $backup_file"
+        # Create backup only if config file exists
+        if [[ -f "$config_file" ]]; then
+            local backup_file="${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+            if cp "$config_file" "$backup_file" 2>/dev/null; then
+                echo -e "${GREEN}✓${NC} Created backup: $backup_file"
+            else
+                log_warning "Failed to create backup, but continuing"
+            fi
+        else
+            echo -e "${YELLOW}⚠${NC} Config file '$config_file' does not exist. Creating new file."
+            touch "$config_file" || {
+                log_error "Failed to create config file: $config_file"
+                return 1
+            }
+        fi
 
         # Check for existing entry and update if present
         # Security: Properly escape token to prevent injection
         if grep -q "^export $var_name=" "$config_file" 2>/dev/null; then
-            # Update existing line using sed
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                # macOS (BSD sed)
+            # Update existing line using sed with comprehensive platform detection
+            local sed_result=0
+            if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "freebsd"* ]]; then
+                # BSD sed (macOS, FreeBSD)
                 sed -i '' "/^export $var_name=/c\\
 export $var_name='$token'" "$config_file"
-            else
-                # Linux (GNU sed)
+                sed_result=$?
+            elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+                # WSL / Git Bash / Cygwin - usually GNU sed
                 sed -i "/^export $var_name=/c\\export $var_name='$token'" "$config_file"
+                sed_result=$?
+            else
+                # Linux and other systems - GNU sed
+                sed -i "/^export $var_name=/c\\export $var_name='$token'" "$config_file"
+                sed_result=$?
             fi
-            echo -e "${GREEN}✓${NC} Updated existing token in $config_file"
+
+            if [[ $sed_result -eq 0 ]]; then
+                echo -e "${GREEN}✓${NC} Updated existing token in $config_file"
+            else
+                log_error "Failed to update token in $config_file"
+                return 1
+            fi
         else
             # Add new entry
             {

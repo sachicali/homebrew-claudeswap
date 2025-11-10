@@ -248,7 +248,7 @@ main() {
     # Offer to run credential setup
     echo "Would you like to configure your API credentials now? (recommended)"
     read -p "Run setup? (Y/n): " run_setup
-    if [[ ! "$run_setup" =~ ^[Nn]$ ]]; then
+    if [[ ! "$run_setup" =~ ^([Nn]|[Nn][Oo])$ ]]; then
         echo ""
         # Source shell to make claudeswap available
         export PATH="$PATH:$INSTALL_DIR"
@@ -268,7 +268,7 @@ main() {
     echo "Next steps:"
     echo "  1. Reload your shell: source ~/.zshrc (or ~/.bashrc)"
     echo "  2. Run: ${YELLOW}claudeswap${NC}"
-    if [[ "$run_setup" =~ ^[Nn]$ ]]; then
+    if [[ "$run_setup" =~ ^([Nn]|[Nn][Oo])$ ]]; then
         echo "  3. Set up credentials: ${YELLOW}claudeswap setup${NC}"
     fi
     echo ""
