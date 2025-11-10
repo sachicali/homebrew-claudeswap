@@ -30,6 +30,7 @@ detect_model_family() {
         # GLM models
         *"glm-"*) echo "glm" ;;
         # Kimi/Moonshot models
+        *"kimi-k2"*) echo "kimi-k2" ;;
         *"kimi"*|*"moonshot"*) echo "kimi" ;;
         # Special cases
         "<synthetic>") echo "synthetic" ;;
@@ -49,6 +50,7 @@ detect_model_tier() {
         "glm") echo "medium" ;;
         "minimax") echo "high" ;;
         "kimi") echo "high" ;;
+        "kimi-k2") echo "very-high" ;;  # K2 beats GPT-4.1 on coding
         *) echo "medium" ;;
     esac
 }
@@ -94,7 +96,7 @@ map_model_to_provider() {
             esac
             ;;
         "kimi"|"moonshot")
-            # Kimi/Moonshot API
+            # Kimi/Moonshot API - using moonshot-v1 models
             case "$model_family" in
                 "sonnet") echo "moonshot-v1-256k" ;;
                 "haiku") echo "moonshot-v1-32k" ;;
@@ -102,6 +104,17 @@ map_model_to_provider() {
                 "minimax") echo "moonshot-v1-256k" ;;
                 "kimi") echo "$model_name" ;;
                 *) echo "moonshot-v1-256k" ;;
+            esac
+            ;;
+        "kimi-for-coding")
+            # Kimi K2 - Latest coding-optimized models (2025)
+            # K2 achieves 65.8% on SWE-bench Verified
+            case "$model_family" in
+                "sonnet"|"opus") echo "kimi-k2-0711-preview" ;;
+                "haiku") echo "kimi-k2-0711-preview" ;;  # K2 is high-performance
+                "glm"|"minimax") echo "kimi-k2-0711-preview" ;;
+                "kimi") echo "$model_name" ;;
+                *) echo "kimi-k2-0711-preview" ;;  # Default to K2 for coding
             esac
             ;;
         *)

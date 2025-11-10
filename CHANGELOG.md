@@ -8,12 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Kimi for Coding Profile** - New `kimi-for-coding` provider variant
-  - Optimized instance for coding-specific tasks
-  - Uses same Kimi credentials but separate instance directory
-  - Run concurrent sessions: general Kimi + coding Kimi simultaneously
-  - Usage: `claudeswap kimi-for-coding "implement feature"`
+- **Kimi for Coding Profile** - New `kimi-for-coding` provider variant with K2 model
+  - Uses latest **kimi-k2-0711-preview** model (1T params, 32B activated)
+  - Performance: 65.8% SWE-bench Verified (beats GPT-4.1's 54.6%)
+  - Cost-effective: $0.14/$2.49 per million input/output tokens
+  - Optimized for: Agentic coding, tool calling, code synthesis
+  - Can execute 200-300 sequential tool calls without intervention
+  - Separate instance directory from regular `kimi`
+  - Run concurrent sessions: general Kimi (moonshot-v1) + coding Kimi (K2) simultaneously
+  - Usage: `claudeswap kimi-for-coding "implement auth system"`
   - Available in TUI as "Kimi for Coding (Optimized)"
+  - Uses same credentials (`CLAUDE_KIMI_AUTH_TOKEN`)
+
+### Changed
+- **Model Mapping** - Updated for Kimi K2 support
+  - `kimi` provider uses moonshot-v1 models (backward compatible)
+  - `kimi-for-coding` provider uses kimi-k2-0711-preview model
+  - Added K2 model family detection in `lib/models.sh`
+  - Set K2 tier to "very-high" (beats GPT-4.1 on coding benchmarks)
 
 ## [1.5.0] - 2025-11-10
 

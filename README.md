@@ -245,13 +245,26 @@ claudeswap version
 - Uses your `CLAUDE_MINIMAX_AUTH_TOKEN`
 
 ### Kimi/Moonshot Configuration
+
+**Regular Kimi (`kimi`):**
 - Base URL: `https://api.moonshot.cn/v1`
 - Timeout: 3000000ms (50 minutes)
 - Models: moonshot-v1-256k, moonshot-v1-128k, moonshot-v1-32k
-- Supports Kimi K2 Thinking model (November 2025)
-- Temperature mapping: API applies 0.6x multiplier automatically
+- Temperature: 0.6x multiplier
 - Uses your `CLAUDE_KIMI_AUTH_TOKEN`
 - Context: Up to 256K tokens
+- Best for: General queries, explanations, documentation
+
+**Kimi for Coding (`kimi-for-coding`):**
+- Base URL: `https://api.moonshot.cn/v1` (same as regular)
+- Model: **kimi-k2-0711-preview** (Latest K2 model)
+- Performance: 65.8% on SWE-bench Verified (beats GPT-4.1's 54.6%)
+- Cost: $0.14/$2.49 per million tokens (very cost-effective!)
+- 1T parameters (32B activated, MoE architecture)
+- Optimized for: Agentic coding, tool calling, code synthesis
+- Best for: Complex coding tasks, refactoring, algorithm implementation
+- Can execute 200-300 sequential tool calls
+- Uses your `CLAUDE_KIMI_AUTH_TOKEN` (same credentials)
 
 ### Standard Configuration
 - Base URL: (removed/blank)
