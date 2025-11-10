@@ -452,7 +452,8 @@ main() {
             echo "Supported Providers:"
             echo "  standard           Anthropic official API"
             echo "  zai                Z.ai / GLM models"
-            echo "  kimi / moonshot    Moonshot AI (256K context)"
+            echo "  kimi / moonshot    Moonshot AI (256K context, general use)"
+            echo "  kimi-for-coding    Kimi optimized for coding tasks"
             echo "  minimax            MiniMax models"
             echo ""
             echo "Examples:"
@@ -460,6 +461,7 @@ main() {
             echo "  claudeswap status                 # Show status"
             echo "  claudeswap set kimi               # Switch to Kimi"
             echo "  claudeswap kimi \"write code\"      # Execute with Kimi (CCS-style)"
+            echo "  claudeswap kimi-for-coding \"implement auth\"  # Coding-optimized Kimi"
             echo "  claudeswap exec zai \"fix bug\"     # Execute with Z.ai"
             echo "  claudeswap instances              # List all instances"
             echo ""
@@ -478,7 +480,7 @@ main() {
             echo "  curl -fsSL https://raw.githubusercontent.com/sachicali/homebrew-claudeswap/main/install.sh | bash"
             echo ""
             ;;
-        standard|zai|kimi|minimax|moonshot)
+        standard|zai|kimi|kimi-for-coding|minimax|moonshot)
             # Direct provider execution (CCS-style)
             # Usage: claudeswap <provider> [command...]
             if [[ $# -gt 0 ]]; then

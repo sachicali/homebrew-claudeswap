@@ -21,14 +21,14 @@ get_instance_dir() {
 
     # Validate provider
     case "$provider" in
-        standard|zai|kimi|minimax|moonshot) ;;
+        standard|zai|kimi|kimi-for-coding|minimax|moonshot) ;;
         *)
             log_error "Invalid provider: $provider"
             return 1
             ;;
     esac
 
-    # Normalize moonshot to kimi
+    # Normalize moonshot to kimi (but keep kimi-for-coding separate)
     [[ "$provider" == "moonshot" ]] && provider="kimi"
 
     echo "$INSTANCE_BASE_DIR/$provider"
@@ -117,7 +117,7 @@ list_instances() {
                 zai)
                     [[ -n "${ZAI_AUTH_TOKEN:-}" ]] && configured="✓"
                     ;;
-                kimi)
+                kimi|kimi-for-coding)
                     [[ -n "${KIMI_AUTH_TOKEN:-}" ]] && configured="✓"
                     ;;
                 minimax)

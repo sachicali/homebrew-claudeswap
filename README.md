@@ -142,26 +142,33 @@ Execute Claude commands directly with provider switching:
 ```bash
 # CCS-style shorthand - switch and execute in one command
 claudeswap kimi "write a bash script"
+claudeswap kimi-for-coding "implement authentication system"
 claudeswap zai "fix this bug"
 claudeswap standard "review code"
 
 # Explicit exec command
 claudeswap exec kimi "implement feature"
+claudeswap exec kimi-for-coding "refactor this module"
 ```
 
 ### Concurrent Multi-Provider Usage
 Run different providers simultaneously in separate terminals:
 
 ```bash
-# Terminal 1: Work with Kimi
-claudeswap kimi "implement authentication"
+# Terminal 1: Coding tasks with optimized Kimi
+claudeswap kimi-for-coding "implement authentication"
 
-# Terminal 2: Use Z.ai simultaneously (no conflict!)
-claudeswap zai "write tests"
+# Terminal 2: General queries with regular Kimi (no conflict!)
+claudeswap kimi "explain this architecture"
 
-# Terminal 3: Standard API for quick queries
-claudeswap standard "explain this code"
+# Terminal 3: Use Z.ai for testing
+claudeswap zai "write comprehensive tests"
+
+# Terminal 4: Standard API for quick queries
+claudeswap standard "review this code snippet"
 ```
+
+**Note:** `kimi-for-coding` uses the same Kimi credentials as regular `kimi`, but maintains a separate instance directory for coding-focused sessions. This allows you to run both concurrently!
 
 ### Instance Management
 

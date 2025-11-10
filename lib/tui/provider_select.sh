@@ -40,7 +40,7 @@ is_provider_configured() {
         "minimax")
             [[ -n "${MINIMAX_AUTH_TOKEN:-}" ]] && return 0 || return 1
             ;;
-        "kimi"|"moonshot")
+        "kimi"|"moonshot"|"kimi-for-coding")
             [[ -n "${KIMI_AUTH_TOKEN:-}" ]] && return 0 || return 1
             ;;
         *)
@@ -56,11 +56,12 @@ show_provider_selection_tui() {
 
     # Build provider list with status indicators
     local -a providers=()
-    local -a provider_names=("standard" "zai" "kimi" "minimax")
+    local -a provider_names=("standard" "zai" "kimi" "kimi-for-coding" "minimax")
     local -a display_names=(
         "Standard Anthropic API"
         "Z.ai / GLM"
-        "Kimi / Moonshot"
+        "Kimi / Moonshot (General)"
+        "Kimi for Coding (Optimized)"
         "MiniMax"
     )
 
@@ -117,6 +118,8 @@ show_provider_selection_tui() {
         selected_provider="standard"
     elif [[ "$choice" == *"Z.ai"* ]]; then
         selected_provider="zai"
+    elif [[ "$choice" == *"Kimi for Coding"* ]]; then
+        selected_provider="kimi-for-coding"
     elif [[ "$choice" == *"Kimi"* ]]; then
         selected_provider="kimi"
     elif [[ "$choice" == *"MiniMax"* ]]; then
