@@ -1,0 +1,20 @@
+# Build artifacts
+*.tar.gz
+*.zip
+
+# macOS
+.DS_Store
+
+# Backup files
+*.backup
+*.bak
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Testing
+test-output/
