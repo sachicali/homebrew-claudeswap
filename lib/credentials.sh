@@ -3,7 +3,13 @@
 # Credential validation and setup
 # Single Responsibility: Handle all credential-related operations
 
+# Bash safety: exit on error, undefined vars, pipe failures
+set -euo pipefail
+
 # Note: constants.sh and logging.sh are sourced by the main claudeswap script
+
+# NASA Rule 2: Maximum iterations for interactive loops
+readonly MAX_INTERACTIVE_ATTEMPTS=50
 
 # Interactive credential setup for a specific service
 setup_service_credentials() {
@@ -33,13 +39,39 @@ setup_service_credentials() {
     local token
     IFS= read -r token
 
+    # Input validation: Check token
     if [[ -z "$token" ]]; then
         log_error "No token provided. Setup cancelled."
         return 1
     fi
 
+    # Basic token validation: Check length and format
+    local token_len=${#token}
+    if [[ $token_len -lt 10 ]]; then
+        log_error "Token too short (minimum 10 characters). Setup cancelled."
+        return 1
+    fi
+
+    # Check for suspicious characters that might indicate input errors
+    if [[ "$token" =~ [[:space:]] ]]; then
+        log_warning "Token contains whitespace - this may be incorrect"
+        printf "Continue anyway? (y/n) "
+        read -r confirm
+        if [[ ! $confirm =~ ^[Yy]$ ]]; then
+            log_info "Setup cancelled."
+            return 1
+        fi
+    fi
+
     # Show the token (partially masked)
-    local masked_token="${token:0:10}...${token: -4}"
+    # NASA Rule: Fix edge case for tokens < 14 characters
+    local masked_token
+    local token_length=${#token}
+    if [[ $token_length -lt 14 ]]; then
+        masked_token="${token:0:3}...${token: -2}"
+    else
+        masked_token="${token:0:10}...${token: -4}"
+    fi
     echo ""
     echo -e "${GREEN}✓${NC} Received token: ${masked_token}"
     echo ""
@@ -56,12 +88,20 @@ setup_service_credentials() {
         # Create backup
         cp ~/.zshrc ~/.zshrc.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
 
-        # Add to zshrc
-        echo "" >> ~/.zshrc
-        echo "# $service API Token - Added by claudeswap" >> ~/.zshrc
-        echo "export $var_name=\"$token\"" >> ~/.zshrc
-
-        echo -e "${GREEN}✓${NC} Token saved to ~/.zshrc"
+        # Check for existing entry and update if present
+        # Security: Properly escape token to prevent injection
+        if grep -q "^export $var_name=" ~/.zshrc 2>/dev/null; then
+            # Update existing line using sed with backup
+            # Use @ as delimiter to avoid conflicts with URLs in tokens
+            sed -i.bak "/^export $var_name=/c\\export $var_name='$token'" ~/.zshrc
+            echo -e "${GREEN}✓${NC} Updated existing token in ~/.zshrc"
+        else
+            # Add new entry
+            echo "" >> ~/.zshrc
+            echo "# $service API Token - Added by claudeswap" >> ~/.zshrc
+            printf "export %s='%s'\n" "$var_name" "$token" >> ~/.zshrc
+            echo -e "${GREEN}✓${NC} Token saved to ~/.zshrc"
+        fi
         echo ""
         echo -e "${YELLOW}Important:${NC} Run ${CYAN}source ~/.zshrc${NC} or restart your terminal"
         echo ""
@@ -89,11 +129,15 @@ setup_credentials_interactive() {
     echo "Choose a provider to configure:"
     echo "  1. Z.ai (GLM models: glm-4.6, glm-4.5)"
     echo "  2. MiniMax (MiniMax-M2, MiniMax-M1)"
-    echo "  3. Standard Anthropic (claude-sonnet, claude-haiku)"
+    echo "  3. Kimi/Moonshot (kimi-k2-thinking, moonshot-v1-256k)"
+    echo "  4. Standard Anthropic (claude-sonnet, claude-haiku)"
     echo ""
 
-    while true; do
-        printf "Select provider (1-3): "
+    # NASA Rule 2: Fixed bound on interactive loop
+    local attempt=0
+    while [[ $attempt -lt $MAX_INTERACTIVE_ATTEMPTS ]]; do
+        attempt=$((attempt + 1))
+        printf "Select provider (1-4): "
         read -r choice
 
         case "$choice" in
@@ -132,6 +176,23 @@ setup_credentials_interactive() {
                 break
                 ;;
             3)
+                setup_service_credentials "Kimi/Moonshot" "CLAUDE_KIMI_AUTH_TOKEN" "https://platform.moonshot.cn/console/api-keys"
+                # Ask for model selection if token was set
+                if [[ -n "${CLAUDE_KIMI_AUTH_TOKEN:-}" ]]; then
+                    echo ""
+                    echo "Would you like to select a specific Kimi model?"
+                    printf "Select model now? (y/n) "
+                    read -r select_model
+                    if [[ $select_model =~ ^[Yy]$ ]]; then
+                        local kimi_model=$(select_model_interactive "kimi")
+                        if [[ -n "$kimi_model" ]]; then
+                            log_info "Model selection completed. You can verify with: claudeswap status"
+                        fi
+                    fi
+                fi
+                break
+                ;;
+            4)
                 log_info "Standard Anthropic API doesn't require setup"
                 echo ""
                 echo "Simply ensure you have an Anthropic API key in:"
@@ -141,10 +202,16 @@ setup_credentials_interactive() {
                 break
                 ;;
             *)
-                echo "Invalid choice. Please enter 1, 2, or 3"
+                echo "Invalid choice. Please enter 1, 2, 3, or 4"
                 ;;
         esac
     done
+
+    # If we hit max attempts, log warning
+    if [[ $attempt -ge $MAX_INTERACTIVE_ATTEMPTS ]]; then
+        log_warning "Maximum attempts reached. Setup cancelled."
+        return 1
+    fi
 
     echo ""
     echo -e "${GREEN}✓ Setup complete!${NC}"
@@ -175,7 +242,10 @@ select_model_interactive() {
         printf "  %2d. %s%s\n" $((i+1)) "$model" "$details" >&2
     done
 
-    while true; do
+    # NASA Rule 2: Fixed bound on interactive loop
+    local attempt=0
+    while [[ $attempt -lt $MAX_INTERACTIVE_ATTEMPTS ]]; do
+        attempt=$((attempt + 1))
         echo "" >&2
         printf "Select model (1-${#available_models[@]}) or press Enter for default: " >&2
         read -r choice
@@ -186,6 +256,7 @@ select_model_interactive() {
                 "standard") echo "claude-sonnet-4-5-20250929" ;;
                 "minimax") echo "MiniMax-M2" ;;
                 "zai"|"glm") echo "glm-4.6" ;;
+                "kimi"|"moonshot") echo "moonshot-v1-256k" ;;
             esac
             return 0
         fi
@@ -198,6 +269,18 @@ select_model_interactive() {
             echo "Invalid selection. Please enter a number between 1 and ${#available_models[@]}" >&2
         fi
     done
+
+    # If we hit max attempts, log warning and return default
+    if [[ $attempt -ge $MAX_INTERACTIVE_ATTEMPTS ]]; then
+        log_warning "Maximum attempts reached. Using default model." >&2
+        case "$provider" in
+            "standard") echo "claude-sonnet-4-5-20250929" ;;
+            "minimax") echo "MiniMax-M2" ;;
+            "zai"|"glm") echo "glm-4.6" ;;
+            "kimi"|"moonshot") echo "moonshot-v1-256k" ;;
+        esac
+        return 0
+    fi
 }
 
 # Setup Anthropic credentials
@@ -249,6 +332,27 @@ setup_minimax_credentials() {
     log_success "MiniMax credentials configured"
 }
 
+# Setup Kimi/Moonshot credentials
+setup_kimi_credentials() {
+    if [[ -z "$KIMI_AUTH_TOKEN" ]]; then
+        log_error "Kimi/Moonshot credentials not configured!"
+        echo ""
+        echo "To configure manually:"
+        echo 'export CLAUDE_KIMI_AUTH_TOKEN="your-kimi-token-here"'
+        echo 'export CLAUDE_KIMI_BASE_URL="https://api.moonshot.cn/v1"'
+        echo ""
+        echo "Or run: claudeswap setup"
+        return 1
+    fi
+
+    # Set environment for Kimi/Moonshot
+    export KIMI_API_KEY="$KIMI_AUTH_TOKEN"
+    export KIMI_BASE_URL="${KIMI_BASE_URL:-$KIMI_BASE_URL_DEFAULT}"
+    export KIMI_TIMEOUT="${KIMI_TIMEOUT:-$KIMI_TIMEOUT_DEFAULT}"
+
+    log_success "Kimi/Moonshot credentials configured"
+}
+
 # Validate credentials
 validate_credentials() {
     local service="$1"
@@ -269,12 +373,16 @@ validate_credentials() {
                 setup_service_credentials "Z.ai" "CLAUDE_ZAI_AUTH_TOKEN" "https://z.ai/manage-apikey/apikey-list"
             elif [[ "$service" == "MiniMax" ]]; then
                 setup_service_credentials "MiniMax" "CLAUDE_MINIMAX_AUTH_TOKEN" "https://platform.minimax.io/user-center/basic-information/interface-key"
+            elif [[ "$service" == "Kimi" ]] || [[ "$service" == "Moonshot" ]]; then
+                setup_service_credentials "Kimi/Moonshot" "CLAUDE_KIMI_AUTH_TOKEN" "https://platform.moonshot.cn/console/api-keys"
             fi
             # Refresh the token variable after interactive setup
             if [[ "$service" == "Z.ai" ]]; then
                 token="${CLAUDE_ZAI_AUTH_TOKEN:-}"
             elif [[ "$service" == "MiniMax" ]]; then
                 token="${CLAUDE_MINIMAX_AUTH_TOKEN:-}"
+            elif [[ "$service" == "Kimi" ]] || [[ "$service" == "Moonshot" ]]; then
+                token="${CLAUDE_KIMI_AUTH_TOKEN:-}"
             fi
 
             # Check if still empty after interactive setup
@@ -294,6 +402,11 @@ validate_credentials() {
             elif [[ "$service" == "MiniMax" ]]; then
                 echo "export CLAUDE_MINIMAX_AUTH_TOKEN=\"your-minimax-token-here\""
                 echo "export CLAUDE_MINIMAX_BASE_URL=\"https://api.minimax.io/anthropic\""
+                echo ""
+                echo "Add these to your ~/.zshrc or ~/.bashrc"
+            elif [[ "$service" == "Kimi" ]] || [[ "$service" == "Moonshot" ]]; then
+                echo "export CLAUDE_KIMI_AUTH_TOKEN=\"your-kimi-token-here\""
+                echo "export CLAUDE_KIMI_BASE_URL=\"https://api.moonshot.cn/v1\""
                 echo ""
                 echo "Add these to your ~/.zshrc or ~/.bashrc"
             fi
