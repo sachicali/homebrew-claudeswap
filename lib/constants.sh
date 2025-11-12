@@ -60,6 +60,7 @@ readonly MODEL_LINE_LIMIT="500"
 readonly MAX_MODELS_PER_PROVIDER="100"
 
 # Environment variables (with fallbacks)
+# NOTE: These are NOT readonly because they get exported/reassigned in setup functions
 ZAI_BASE_URL="${CLAUDE_ZAI_BASE_URL:-$ZAI_BASE_URL_DEFAULT}"
 ZAI_AUTH_TOKEN="${CLAUDE_ZAI_AUTH_TOKEN:-}"
 ZAI_TIMEOUT="${CLAUDE_ZAI_TIMEOUT:-$ZAI_TIMEOUT_DEFAULT}"

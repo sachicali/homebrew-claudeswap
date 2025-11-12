@@ -2,21 +2,27 @@
 
 **Version 1.5.0** | [Release Notes](RELEASE_NOTES_v1.5.0.md) | [Changelog](CHANGELOG.md)
 
-A safe and robust tool to swap between multiple AI providers: GLM (Z.ai), MiniMax, Kimi/Moonshot, and standard Anthropic Claude with dynamic model mapping, concurrent execution, and performance optimization.
+A transparent wrapper and multi-provider manager for Claude Code. Switch seamlessly between Anthropic Claude, GLM (Z.ai), MiniMax, and Kimi/Moonshot providers while leveraging all of Claude Code's features. Works as a drop-in replacement for the `claude` command with dynamic model mapping, concurrent execution, and performance optimization.
 
 ## ✨ What's New in v1.5.0
 
 **🚀 Major Features:**
+- **🔄 Transparent Wrapper** - Use claudeswap as a drop-in replacement for `claude` command
+- **✨ Pass-Through Mode** - All Claude Code commands work seamlessly through claudeswap
+- **🔗 Alias Setup** - One command to set up `alias claude='claudeswap'`
 - **CCS-Style Concurrent Execution** - Run multiple providers simultaneously with instance isolation
 - **Official Kimi for Coding** - Full support for Moonshot's coding membership plan
 - **Kimi K2 Turbo** - 4x faster performance at 40 tokens/sec
 - **Auto-Installer** - One-line installation with bundled Gum
 
 **🐛 Critical Fixes:**
-- Fixed syntax error in model mapping (duplicate semicolon)
-- Updated version consistency across all components
-- Bash 3.2 compatibility improvements
-- Centralized configuration constants
+- Fixed shell injection vulnerability in credentials handling
+- Fixed broken export command in TUI credential input
+- Resolved API key variable naming inconsistency
+- Fixed broken provider detection logic
+- Added comprehensive jq error handling
+- Fixed directory checks and pipeline error handling
+- Multiple other reliability and security improvements
 
 **📚 Full Details:** See [Release Notes](RELEASE_NOTES_v1.5.0.md) for complete changelog and upgrade instructions.
 
@@ -245,6 +251,68 @@ claudeswap kimi "write code"
 
 ## Usage
 
+### 🔄 Transparent Wrapper Mode (NEW!)
+
+ClaudeSwap now acts as a **transparent wrapper** around Claude Code, making it a true drop-in replacement! Any command not recognized by claudeswap is automatically passed through to the `claude` CLI.
+
+#### Using claudeswap as a drop-in replacement:
+
+```bash
+# 1. Set up your preferred provider
+claudeswap set kimi
+
+# 2. Now use ANY claude command through claudeswap!
+claudeswap chat                    # Start chat with Kimi
+claudeswap project:add             # Add project (uses Kimi)
+claudeswap --version              # Shows claude version
+claudeswap session:delete         # Delete session (uses Kimi)
+
+# 3. Switch providers on the fly
+claudeswap set zai
+claudeswap chat                    # Now using Z.ai!
+
+# 4. Or use provider-specific execution (CCS-style)
+claudeswap kimi "implement feature"          # One-off with Kimi
+claudeswap kimi-for-coding "write tests"     # One-off with Kimi for Coding
+claudeswap zai "analyze code"                # One-off with Z.ai
+```
+
+#### Set up alias for seamless integration:
+
+```bash
+# Run the alias setup command
+claudeswap alias
+
+# Or manually add to ~/.zshrc or ~/.bashrc:
+alias claude='claudeswap'
+
+# Then reload:
+source ~/.zshrc
+
+# Now use 'claude' with any provider!
+claude status              # ClaudeSwap status
+claude set minimax         # Switch to MiniMax
+claude chat                # Chat with MiniMax
+claude project:add         # All Claude Code commands work!
+```
+
+#### How it works:
+
+1. **ClaudeSwap-specific commands** are handled directly:
+   - `status`, `set`, `setup`, `alias`, `backup`, `clear`, `tui`, `instances`, etc.
+
+2. **Provider shortcuts** execute with that provider:
+   - `claudeswap kimi [command]`, `claudeswap zai [command]`, etc.
+
+3. **Everything else** passes through to `claude`:
+   - Any unrecognized command goes directly to Claude Code
+   - This includes: `chat`, `project:add`, `session:delete`, `--help`, etc.
+
+4. **Settings management**:
+   - ClaudeSwap manipulates `~/.claude/settings.json` to switch providers
+   - Claude Code reads this file and uses the configured API endpoint
+   - Supports changing `ANTHROPIC_BASE_URL` for proxy providers
+
 ### CLI Mode Commands
 
 ```bash
@@ -257,6 +325,9 @@ claudeswap set minimax
 # Switch to Kimi/Moonshot (50min timeout, 256K context)
 claudeswap set kimi
 
+# Switch to Kimi for Coding (optimized for development)
+claudeswap set kimi-for-coding
+
 # Switch to standard Anthropic (2min timeout)
 claudeswap set standard
 
@@ -265,6 +336,9 @@ claudeswap status
 
 # Interactive credential setup
 claudeswap setup
+
+# Set up 'claude' alias for drop-in replacement
+claudeswap alias
 
 # Test dynamic model mapping system
 claudeswap test-models
