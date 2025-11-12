@@ -7,7 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.6.0] - 2025-11-11
+## [1.5.2] - 2025-11-12
+
+### Added
+- **Transparent Wrapper Mode** - Full Claude Code integration
+  - Seamless pass-through of all Claude Code commands and arguments
+  - Maintains provider context while using native Claude CLI features
+  - Preserves all Claude Code functionality (API keys, projects, settings)
+  - Automatic provider activation before command execution
+
+### Changed
+- **README.md** - Comprehensive documentation updates
+  - Added transparent wrapper mode usage examples
+  - Enhanced provider comparison tables
+  - Updated installation and configuration instructions
+  - Improved troubleshooting section
+
+### Fixed
+- **Critical Environment Variable Issue** - Removed `readonly` from environment variables
+  - Fixed compatibility issues with Claude Code's variable management
+  - Improved cross-shell compatibility (bash, zsh, fish)
+  - Enhanced environment variable persistence across sessions
+- **Multiple Critical and High-Severity Bugs** - Comprehensive bug fixes
+  - Improved error handling in credential management
+  - Enhanced session file integrity checks
+  - Fixed TUI provider selection edge cases
+  - Strengthened cache management with better validation
+  - Improved input validation across all modules
+
+### Security
+- **Enhanced Input Validation** - Strengthened security across all user inputs
+  - Improved sanitization in credential input handling
+  - Enhanced validation in TUI components
+  - Better error messages without exposing sensitive data
+
+## [1.5.1] - 2025-11-11
 
 ### Added
 - **Official Kimi for Coding Support** - ⭐ **OFFICIAL Moonshot Product**
