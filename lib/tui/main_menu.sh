@@ -139,7 +139,9 @@ run_tui_main_loop() {
                 return 0
                 ;;
             *)
-                log_error_tui "Invalid menu selection"
+                # This should not happen with gum choose, but if it does, just continue
+                # instead of showing an error, as it's likely a transient issue
+                continue
                 ;;
         esac
     done
