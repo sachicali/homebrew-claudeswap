@@ -6,7 +6,7 @@
 # Bash safety: exit on error, undefined vars, pipe failures
 set -euo pipefail
 
-readonly VERSION="1.5.0"
+readonly VERSION="1.5.2"
 
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
