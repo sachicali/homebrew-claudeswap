@@ -5,7 +5,7 @@ class Claudeswap < Formula
   license "MIT"
 
   url "https://github.com/sachicali/homebrew-claudeswap/archive/refs/tags/v1.5.2.tar.gz"
-  sha256 "a5eb5f87975b67ed77d1ba4f498d8cfb53cdf322cbd0978e43b325f136a7369f"
+  sha256 "04519186d140f48529b100d1e5447d97ddcd57f8925d33955c2c9da4e024a9ba"
 
   depends_on "jq"
   depends_on "curl"
