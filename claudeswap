@@ -484,6 +484,55 @@ main() {
         "setup")
             handle_setup
             ;;
+        "alias")
+            # Set up shell alias to use claudeswap as drop-in replacement for claude
+            echo ""
+            echo "Setting up claudeswap as a drop-in replacement for 'claude'..."
+            echo ""
+
+            local shell_config
+            shell_config=$(detect_shell_config)
+
+            echo "Adding alias to: $shell_config"
+            echo ""
+
+            # Check if alias already exists
+            if grep -qF "alias claude=" "$shell_config" 2>/dev/null; then
+                echo -e "${YELLOW}⚠${NC}  Alias already exists in $shell_config"
+                echo ""
+                printf "Replace existing alias? (y/n): "
+                read -r replace
+                if [[ ! $replace =~ ^[Yy]$ ]]; then
+                    log_info "Alias setup cancelled"
+                    return 0
+                fi
+
+                # Remove existing alias
+                local temp_file="${shell_config}.tmp.$$"
+                grep -vF "alias claude=" "$shell_config" > "$temp_file"
+                mv "$temp_file" "$shell_config"
+            fi
+
+            # Add new alias
+            {
+                echo ""
+                echo "# ClaudeSwap - Use as drop-in replacement for Claude Code"
+                echo "alias claude='claudeswap'"
+            } >> "$shell_config"
+
+            echo -e "${GREEN}✓${NC} Alias added to $shell_config"
+            echo ""
+            echo "To activate the alias, run:"
+            echo -e "  ${CYAN}source $shell_config${NC}"
+            echo ""
+            echo "Or restart your terminal"
+            echo ""
+            echo "After activation, use 'claude' commands with any provider:"
+            echo "  ${YELLOW}claude status${NC}      # Show current provider"
+            echo "  ${YELLOW}claude set kimi${NC}    # Switch to Kimi"
+            echo "  ${YELLOW}claude chat${NC}        # Start chat with current provider"
+            echo ""
+            ;;
         "backup")
             handle_backup
             ;;
@@ -543,16 +592,21 @@ main() {
             fi
             ;;
         "help"|"--help"|"-h")
-            echo "Claude Swap - Multi-Provider Configuration Manager"
+            echo "Claude Swap - Transparent Multi-Provider Wrapper for Claude Code"
             echo ""
             echo "Usage: claudeswap [command] [options]"
             echo ""
-            echo "Commands:"
+            echo "🔄 Transparent Wrapper Mode:"
+            echo "  Any unrecognized command is passed directly to Claude Code,"
+            echo "  making claudeswap a drop-in replacement for the 'claude' command."
+            echo ""
+            echo "ClaudeSwap-Specific Commands:"
             echo "  tui                Launch interactive TUI mode (default if no command)"
             echo "  status             Show current configuration status"
             echo "  test-models        Test and display available models"
             echo "  set <provider>     Switch to specified provider"
             echo "  setup              Interactive credential setup"
+            echo "  alias              Set up 'claude' alias for transparent wrapping"
             echo "  backup             Backup current sessions"
             echo "  clear              Clear all sessions"
             echo ""
@@ -569,22 +623,34 @@ main() {
             echo ""
             echo "Supported Providers:"
             echo "  standard           Anthropic official API"
-            echo "  zai                Z.ai / GLM models"
+            echo "  zai                Z.ai / GLM models (glm-4.6, glm-4.5)"
             echo "  kimi / moonshot    Moonshot AI (256K context, general use)"
             echo "  kimi-for-coding    Kimi optimized for coding tasks"
-            echo "  minimax            MiniMax models"
+            echo "  minimax            MiniMax models (MiniMax-M2, MiniMax-M1)"
             echo ""
             echo "Examples:"
+            echo ""
+            echo "  # ClaudeSwap management"
             echo "  claudeswap                        # Enter TUI mode"
-            echo "  claudeswap status                 # Show status"
-            echo "  claudeswap set kimi               # Switch to Kimi"
-            echo "  claudeswap kimi \"write code\"      # Execute with Kimi (CCS-style)"
-            echo "  claudeswap kimi-for-coding \"implement auth\"  # Coding-optimized Kimi"
+            echo "  claudeswap status                 # Show current provider"
+            echo "  claudeswap set kimi               # Switch to Kimi provider"
+            echo "  claudeswap setup                  # Configure credentials"
+            echo ""
+            echo "  # Transparent wrapper usage (uses current provider)"
+            echo "  claudeswap chat                   # Start chat (same as 'claude chat')"
+            echo "  claudeswap project:add            # Add project (same as 'claude project:add')"
+            echo "  claudeswap --version              # Claude version (passes through)"
+            echo ""
+            echo "  # Provider-specific execution (CCS-style)"
+            echo "  claudeswap kimi \"write code\"      # Execute with Kimi"
+            echo "  claudeswap kimi-for-coding \"implement auth\"  # Coding-optimized"
             echo "  claudeswap exec zai \"fix bug\"     # Execute with Z.ai"
-            echo "  claudeswap instances              # List all instances"
+            echo ""
+            echo "  # Use as drop-in replacement"
+            echo "  alias claude='claudeswap'         # Now 'claude' uses current provider!"
             echo ""
             echo "Environment Variables:"
-            echo "  CLAUDESWAP_CLAUDE_PATH            Custom Claude CLI path"
+            echo "  CLAUDESWAP_CLAUDE_PATH            Custom Claude CLI path (default: claude)"
             echo "  CLAUDESWAP_TUI_MODE               TUI mode: auto/always/never"
             echo "  CLAUDESWAP_INSTALL_DIR            Installation directory"
             echo ""
@@ -621,14 +687,27 @@ main() {
             fi
             ;;
         *)
+            # Pass-through to Claude CLI for unknown commands
+            # This makes claudeswap a transparent wrapper around claude
             if [[ -z "$command" ]]; then
                 log_error "No command specified and TUI mode not available"
                 echo "Install Gum for TUI mode: brew install gum"
-            else
-                log_error "Unknown command: $command"
+                echo "Use 'claudeswap help' for usage information"
+                return 1
             fi
-            echo "Use 'claudeswap help' for usage information"
-            return 1
+
+            # Detect Claude CLI
+            local claude_cmd="${CLAUDESWAP_CLAUDE_PATH:-claude}"
+            if ! command -v "$claude_cmd" >/dev/null 2>&1; then
+                log_warning "Claude CLI not found at '$claude_cmd'"
+                log_info "Install Claude Code: npm install -g @anthropics/claude-code"
+                log_info "Or set CLAUDESWAP_CLAUDE_PATH to your claude CLI location"
+                return 1
+            fi
+
+            # Pass through all arguments to claude
+            # This allows using claudeswap as a drop-in replacement for claude
+            exec "$claude_cmd" "$command" "$@"
             ;;
     esac
 }
