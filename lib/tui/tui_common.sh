@@ -9,7 +9,8 @@
 readonly _TUI_COMMON_LOADED=1
 
 # Bash safety: exit on error, undefined vars, pipe failures
-set -euo pipefail
+set +e
+set -u
 
 # Validate CLAUDE_SWAP_BASE_DIR is set
 if [[ -z "${CLAUDE_SWAP_BASE_DIR:-}" ]]; then
@@ -82,18 +83,14 @@ is_provider_configured() {
             [[ -n "${ANTHROPIC_API_KEY:-}" ]] && return 0
             ;;
         "zai")
-            # Check both variable names for compatibility
-            [[ -n "${ZAI_AUTH_TOKEN:-}" ]] || [[ -n "${ZAI_API_KEY:-}" ]] && return 0
+            [[ -n "${CLAUDE_ZAI_AUTH_TOKEN:-}" ]] && return 0
             ;;
         "minimax")
-            # Check both variable names for compatibility
-            [[ -n "${MINIMAX_AUTH_TOKEN:-}" ]] || [[ -n "${MINIMAX_API_KEY:-}" ]] && return 0
+            [[ -n "${CLAUDE_MINIMAX_AUTH_TOKEN:-}" ]] && return 0
             ;;
         "kimi"|"moonshot"|"kimi-for-coding")
-            # Check both variable names for compatibility
-            [[ -n "${KIMI_AUTH_TOKEN:-}" ]] || [[ -n "${KIMI_API_KEY:-}" ]] && return 0
+            [[ -n "${CLAUDE_KIMI_AUTH_TOKEN:-}" ]] && return 0
             ;;
-    esac
 
     return 1
 }

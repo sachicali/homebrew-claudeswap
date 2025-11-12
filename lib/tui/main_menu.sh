@@ -8,7 +8,8 @@
 readonly _MAIN_MENU_LOADED=1
 
 # Bash safety: exit on error, undefined vars, pipe failures
-set -euo pipefail
+set +e
+set -u
 
 # NASA Rule 7: Check file existence before sourcing
 if [[ ! -f "${CLAUDE_SWAP_BASE_DIR}/lib/tui/tui_common.sh" ]]; then
@@ -62,6 +63,10 @@ show_main_menu() {
 # Main TUI loop (NASA Rule 4: <70 lines)
 run_tui_main_loop() {
     local iteration=0
+    
+    # Set up signal handling for Ctrl+C and other interrupts
+    trap 'gum style --foreground="$GUM_WARNING_COLOR" "
+Exiting TUI..."; return 0' INT TERM
 
     # NASA Rule 2: Fixed upper bound
     while [[ $iteration -lt $MAX_TUI_ITERATIONS ]]; do
@@ -132,14 +137,8 @@ run_tui_main_loop() {
                 gum spin --spinner dot --title "Press any key to continue..." -- sleep 2
                 ;;
             "📜 View History")
-                # Call history viewer
-                if [[ -f "${CLAUDE_SWAP_BASE_DIR}/lib/tui/history.sh" ]]; then
-                    source "${CLAUDE_SWAP_BASE_DIR}/lib/tui/history.sh"
-                    show_history_tui || log_error_tui "History view failed"
-                else
-                    log_warning_tui "History view not yet implemented"
-                fi
-                # Pause to let user see result before returning to menu
+                # History viewer - not yet implemented
+                gum style --foreground="$GUM_WARNING_COLOR" "📜 History view not yet implemented"
                 gum spin --spinner dot --title "Press any key to continue..." -- sleep 2
                 ;;
             "❌ Exit")

@@ -712,5 +712,19 @@ main() {
     esac
 }
 
+# Export functions for TUI components
+# These functions need to be available to TUI sub-components
+export -f handle_set
+export -f handle_status
+export -f handle_setup
+export -f setup_credentials_interactive
+export -f fetch_available_models
+export -f get_model_details
+export -f get_current_model
+export -f validate_provider
+export -f get_provider_base_url
+export -f get_provider_timeout
+export -f get_current_provider
+
 # Run main function with all arguments
 main "$@"
